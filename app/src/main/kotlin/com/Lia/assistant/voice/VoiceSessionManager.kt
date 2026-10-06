@@ -4,10 +4,16 @@ import android.content.Context
 
 /**
  * STUB. The real live-voice session arrives in a later step.
- * PersonalityRepository already calls refreshInstructions() after every settings change,
- * so a live session will pick the change up once this is implemented.
+ * PersonalityRepository already calls refreshInstructions() after every settings change.
  */
 object VoiceSessionManager {
+    /** In-memory only; wiped when the session stops. */
+    val memory = ConversationMemory()
+
     @Suppress("UNUSED_PARAMETER")
     fun refreshInstructions(context: Context) = Unit
+
+    fun stopSession() {
+        memory.clear()
+    }
 }

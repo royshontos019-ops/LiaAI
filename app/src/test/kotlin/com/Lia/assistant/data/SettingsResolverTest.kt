@@ -5,13 +5,13 @@ import org.junit.Test
 
 class SettingsResolverTest {
     @Test fun personality_storedWins() =
-        assertEquals(Personality.CALM, SettingsResolver.personality("CALM", "PLAYFUL"))
+        assertEquals(Personality.TEACHER, SettingsResolver.personality("TEACHER", "FUNNY"))
 
     @Test fun personality_fallsBackToLegacy() =
-        assertEquals(Personality.PLAYFUL, SettingsResolver.personality(null, "PLAYFUL"))
+        assertEquals(Personality.FUNNY, SettingsResolver.personality(null, "FUNNY"))
 
     @Test fun personality_blankStoredFallsBack() =
-        assertEquals(Personality.PLAYFUL, SettingsResolver.personality("  ", "PLAYFUL"))
+        assertEquals(Personality.FUNNY, SettingsResolver.personality("  ", "FUNNY"))
 
     @Test fun personality_unknownOrMissingGivesDefault() {
         assertEquals(Personality.DEFAULT, SettingsResolver.personality("nonsense", null))
@@ -19,7 +19,7 @@ class SettingsResolverTest {
     }
 
     @Test fun personality_caseInsensitive() =
-        assertEquals(Personality.CALM, Personality.fromId("calm"))
+        assertEquals(Personality.TEACHER, Personality.fromId("teacher"))
 
     @Test fun language_defaultsToAuto() {
         assertEquals(LanguagePreference.AUTO, SettingsResolver.language(null, null))
