@@ -3,8 +3,8 @@ package com.Lia.assistant.voice
 import android.content.Context
 import com.Lia.assistant.ActionExecutor
 import com.Lia.assistant.Forge
-import com.Lia.assistant.InstalledAppLabelCache
-import com.Lia.assistant.ToolResult
+import com.Lia.assistant.action.InstalledAppLabelCache
+import com.Lia.assistant.action.ToolJson
 import com.Lia.assistant.data.ApiKeyStore
 import com.Lia.assistant.data.LanguagePreference
 import com.Lia.assistant.data.NovaDefaults
@@ -13,6 +13,7 @@ import com.Lia.assistant.data.Personality
 import com.Lia.assistant.data.PersonalityRepository
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -288,17 +289,23 @@ object VoiceSessionManager {
         override fun onToolCall(id: String, name: String, args: JSONObject) {
             if (!current(epoch)) return
             scope.launch {
-                val response = if (name == TOOL_BUILD_WEBSITE) {
+                val response: JSONObject = if (name == TOOL_BUILD_WEBSITE) {
                     // Start the Forge (it works in the background) and answer right away.
                     val started = appContext?.let { Forge.start(it, args) } ?: false
                     JSONObject().put("result", if (started) "forge_started" else "forge_unavailable")
                 } else {
-                    val result = try {
-                        ActionExecutor.execute(name, args)
-                    } catch (_: Exception) {
-                        ToolResult(false, "The action failed.")
+                    val ctx = appContext
+                    if (ctx == null) {
+                        ToolJson.error("The app is not ready.")
+                    } else {
+                        try {
+                            ActionExecutor.execute(ctx, name, args)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            ToolJson.error("The action failed: $name")
+                        }
                     }
-                    JSONObject().put("ok", result.ok).put("message", result.message)
                 }
                 if (current(epoch)) client?.sendToolResponse(id, name, response.toString())
             }

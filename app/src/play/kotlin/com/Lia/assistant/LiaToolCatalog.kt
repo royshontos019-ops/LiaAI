@@ -1,10 +1,16 @@
 package com.Lia.assistant
 
+import com.Lia.assistant.action.PhoneToolDeclarations
+import com.Lia.assistant.action.declaredToolNames
 import org.json.JSONArray
 
-/** Play build: no tools at all (screen control is removed at compile time). */
+/** Play flavor: exactly three tools. */
 object LiaToolCatalog {
-    fun tools(): List<ToolSpec> = emptyList()
+    fun declarations(): JSONArray {
+        val out = JSONArray()
+        PhoneToolDeclarations.base(autoSend = false).forEach { out.put(it) }
+        return out
+    }
 
-    fun declarations(): JSONArray = JSONArray()
+    fun toolNames(): List<String> = declarations().declaredToolNames()
 }

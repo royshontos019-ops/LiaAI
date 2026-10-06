@@ -1,18 +1,12 @@
 package com.Lia.assistant
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import com.Lia.assistant.action.NovaAccessibilityService
 
 object AccessKeyManager {
-    fun isEnabled(context: Context): Boolean {
-        val enabled = Settings.Secure.getString(
-            context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        val me = ComponentName(context, LiaAccessibilityService::class.java).flattenToString()
-        return enabled.split(':').any { it.equals(me, ignoreCase = true) }
-    }
+    fun isEnabled(context: Context): Boolean = NovaAccessibilityService.isEnabled(context)
 
     fun openSettings(context: Context) {
         context.startActivity(
