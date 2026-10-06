@@ -11,4 +11,6 @@ class PlayFlavorTest {
         assertTrue(LiaToolCatalog.tools().isEmpty())
         assertFalse(ActionExecutor.isAvailable)
     }
+
+    @Test fun play_declaresNoFunctions() = assertEquals(0, LiaToolCatalog.declarations().length())
 }
