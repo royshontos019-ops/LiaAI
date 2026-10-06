@@ -1,0 +1,4 @@
+<resources>
+    <string name="accessibility_service_label">Lia screen control</string>
+    <string name="accessibility_service_description">Lets Lia read the screen and perform taps, swipes and typing when you ask her to.</string>
+</resources>

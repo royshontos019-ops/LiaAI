@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.Lia" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Lia.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#FF1B1B2F</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Lia</item>
+    </style>
+</resources>
