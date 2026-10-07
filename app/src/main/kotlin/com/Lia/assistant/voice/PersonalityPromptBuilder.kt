@@ -8,7 +8,7 @@ import com.Lia.assistant.data.Personality
 object PersonalityPromptBuilder {
     const val RECAP_MARKER = "This is a continuing conversation"
 
-    private const val SAFETY =
+    internal const val SAFETY =
         "Safety rules: Never claim to be human or to have a body. Never produce sexually explicit " +
             "content. If the user asks you to stop a topic or change the tone, do it immediately. " +
             "Vary your phrasing so you do not repeat the same sentences."
