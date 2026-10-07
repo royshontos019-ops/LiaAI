@@ -62,6 +62,22 @@ internal object GeminiTextProtocol {
     fun tryOrder(names: List<String>, working: String?): List<String> =
         if (working != null && working in names) listOf(working) + names.filter { it != working } else names
 
+    /**
+     * True for answers that belong to ONE model, so the next candidate is worth trying:
+     * 404 (retired / closed to this key), 429 (that model's quota) and 5xx (that model is overloaded).
+     * Anything else (bad key, bad request) would fail on every model.
+     */
+    fun shouldTryNextModel(code: Int): Boolean = code == 404 || code == 429 || code in 500..599
+
+    /** Message after every tried model failed with a "try the next one" status. */
+    fun exhaustedMessage(tried: List<String>, lastCode: Int, lastReason: String?, apiKey: String = ""): String =
+        if (lastCode == 404) {
+            noModelMessage(tried, lastReason, apiKey)
+        } else {
+            httpMessage(lastCode, lastReason, apiKey) +
+                " I tried ${tried.size} model${if (tried.size == 1) "" else "s"}."
+        }
+
     /** Shown when every model we tried answered 404. Contains model ids, never the key. */
     fun noModelMessage(tried: List<String>, reason: String?, apiKey: String = ""): String {
         val detail = reason?.let { LiveErrors.sanitize(it, apiKey, 160) }?.takeIf { it.isNotBlank() }
@@ -144,7 +160,10 @@ internal object GeminiTextProtocol {
                     " Check your API key in Settings."
             404 -> "Gemini couldn't find that model (HTTP 404). Please try again."
             429 -> "Gemini is limiting requests right now (HTTP 429). Please try again in a minute."
-            in 500..599 -> "Gemini had a problem on its side (HTTP $code). Please try again."
+            in 500..599 -> {
+                val tail = detail?.let { ": ${it.trimEnd('.')}." } ?: "."
+                "Gemini had a problem on its side (HTTP $code)$tail Please try again."
+            }
             else -> "Gemini returned an error (HTTP $code)" + (detail?.let { ": $it" } ?: ".")
         }
     }

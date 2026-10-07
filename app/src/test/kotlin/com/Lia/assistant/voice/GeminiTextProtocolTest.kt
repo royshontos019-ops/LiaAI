@@ -197,4 +197,35 @@ class GeminiTextProtocolTest {
         assertTrue(msg.contains("404"))
         assertFalse(msg.contains(key))
     }
+
+    // ---------- busy / out-of-quota models ----------
+    @Test fun shouldTryNextModel_onlyForPerModelProblems() {
+        for (code in listOf(404, 429, 500, 502, 503, 504)) assertTrue("$code", GeminiTextProtocol.shouldTryNextModel(code))
+        for (code in listOf(400, 401, 403, 418)) assertFalse("$code", GeminiTextProtocol.shouldTryNextModel(code))
+    }
+
+    @Test fun httpMessage_serverErrorShowsGeminisReason() {
+        val msg = GeminiTextProtocol.httpMessage(503, "The model is overloaded.")
+        assertTrue(msg.contains("503"))
+        assertTrue(msg.contains("The model is overloaded"))
+        assertTrue(msg.contains("try again", ignoreCase = true))
+    }
+
+    @Test fun exhaustedMessage_forBusyModelsCountsAttempts() {
+        val msg = GeminiTextProtocol.exhaustedMessage(listOf("models/a", "models/b"), 503, "overloaded")
+        assertTrue(msg.contains("503"))
+        assertTrue(msg.contains("2 models"))
+        assertTrue(GeminiTextProtocol.exhaustedMessage(listOf("models/a"), 429, null).contains("1 model."))
+    }
+
+    @Test fun exhaustedMessage_for404ListsTheModels() {
+        val msg = GeminiTextProtocol.exhaustedMessage(listOf("models/a"), 404, null)
+        assertTrue(msg.contains("models/a"))
+        assertTrue(msg.contains("404"))
+    }
+
+    @Test fun exhaustedMessage_neverContainsTheKey() {
+        val key = "SECRET-KEY-123"
+        assertFalse(GeminiTextProtocol.exhaustedMessage(listOf("models/a"), 503, "key=$key", key).contains(key))
+    }
 }

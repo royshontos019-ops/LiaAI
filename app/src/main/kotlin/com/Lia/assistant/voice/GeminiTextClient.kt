@@ -69,6 +69,7 @@ object GeminiTextClient {
             }
             val tried = ArrayList<String>()
             var lastReason: String? = null
+            var lastCode = 404
 
             for (model in GeminiTextProtocol.tryOrder(names, workingModel).take(MAX_MODEL_ATTEMPTS)) {
                 val request = Request.Builder()
@@ -84,15 +85,16 @@ object GeminiTextClient {
                 }
                 val reason = GeminiTextProtocol.errorReason(result.body)
                 logHttp(result.code, reason, key)
-                if (result.code != 404) {
+                if (!GeminiTextProtocol.shouldTryNextModel(result.code)) {
                     return ChatReplyResult.Error(GeminiTextProtocol.httpMessage(result.code, reason, key))
                 }
-                // 404: this listed model is retired or closed to this key. Try the next one.
+                // 404, 429 or 5xx: this model is gone, out of quota or overloaded. Try the next one.
                 tried += GeminiTextProtocol.modelPath(model)
                 lastReason = reason
-                if (workingModel == model) workingModel = null
+                lastCode = result.code
+                if (result.code == 404 && workingModel == model) workingModel = null
             }
-            ChatReplyResult.Error(GeminiTextProtocol.noModelMessage(tried, lastReason, key))
+            ChatReplyResult.Error(GeminiTextProtocol.exhaustedMessage(tried, lastCode, lastReason, key))
         } catch (_: IOException) {
             ChatReplyResult.Error("Couldn't reach Gemini. Check your internet connection and try again.")
         }
