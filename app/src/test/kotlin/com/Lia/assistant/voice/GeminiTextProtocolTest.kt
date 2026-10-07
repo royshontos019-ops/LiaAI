@@ -154,4 +154,47 @@ class GeminiTextProtocolTest {
         val msg = GeminiTextProtocol.httpMessage(400, "bad request key=$key and $key", key)
         assertFalse(msg.contains(key))
     }
+
+    // ---------- candidate list (walk past models that answer 404) ----------
+    @Test fun candidateModels_flashFirstThenTheRestAndNeverLiveImageTts() {
+        val models = listOf(
+            model("models/gemini-pro", "generateContent"),
+            model("models/gemini-2.0-flash-old", "generateContent"),
+            model("models/gemini-flash-live", "generateContent"),
+            model("models/gemini-2.5-flash-image", "generateContent"),
+            model("models/gemini-2.5-flash-tts", "generateContent"),
+            model("models/gemini-2.5-flash", "generateContent"),
+            model("models/embedding", "embedContent"),
+            model("models/gemma", "generateContent"),
+        )
+        assertEquals(
+            listOf("models/gemini-2.0-flash-old", "models/gemini-2.5-flash", "models/gemini-pro", "models/gemma"),
+            GeminiTextProtocol.candidateModels(models),
+        )
+    }
+
+    @Test fun candidateModels_whenOnlyLiveModelsExistTheyAreTheLastResort() {
+        val models = listOf(model("models/x-live", "generateContent"))
+        assertEquals(listOf("models/x-live"), GeminiTextProtocol.candidateModels(models))
+    }
+
+    @Test fun candidateModels_emptyWhenNothingSupportsGenerateContent() =
+        assertTrue(GeminiTextProtocol.candidateModels(listOf(model("models/e", "embedContent"))).isEmpty())
+
+    @Test fun tryOrder_putsTheWorkingModelFirst() {
+        val names = listOf("a", "b", "c")
+        assertEquals(listOf("c", "a", "b"), GeminiTextProtocol.tryOrder(names, "c"))
+        assertEquals(names, GeminiTextProtocol.tryOrder(names, null))
+        assertEquals(names, GeminiTextProtocol.tryOrder(names, "unknown"))
+    }
+
+    @Test fun noModelMessage_listsModelsAndHidesTheKey() {
+        val key = "SECRET-KEY-123"
+        val msg = GeminiTextProtocol.noModelMessage(
+            listOf("models/a", "models/b"), "model no longer available key=$key", key,
+        )
+        assertTrue(msg.contains("models/a, models/b"))
+        assertTrue(msg.contains("404"))
+        assertFalse(msg.contains(key))
+    }
 }

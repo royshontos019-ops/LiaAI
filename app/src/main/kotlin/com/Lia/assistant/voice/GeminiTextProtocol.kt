@@ -35,17 +35,39 @@ internal object GeminiTextProtocol {
         return out
     }
 
+    private fun isLiveImageOrTts(lowerName: String) =
+        "live" in lowerName || "image" in lowerName || "tts" in lowerName
+
     /**
-     * First model that supports generateContent and whose name has "flash" but not "live",
-     * "image" or "tts". Falls back to the first generateContent model. Never a hardcoded id.
+     * Models to try, best first: every generateContent model whose name has "flash" but not
+     * "live", "image" or "tts" (in the order Gemini lists them), then the other generateContent
+     * models. Never a hardcoded id. A listed model can still answer 404 (retired, or closed to
+     * new keys), so the client walks this list instead of trusting only the first entry.
      */
-    fun pickModel(models: List<ModelInfo>): String? {
+    fun candidateModels(models: List<ModelInfo>): List<String> {
         val usable = models.filter { "generateContent" in it.methods }
-        val chat = usable.firstOrNull {
+        val flash = usable.filter {
             val n = it.name.lowercase()
-            "flash" in n && "live" !in n && "image" !in n && "tts" !in n
+            "flash" in n && !isLiveImageOrTts(n)
         }
-        return (chat ?: usable.firstOrNull())?.name
+        val rest = usable.filter { it !in flash && !isLiveImageOrTts(it.name.lowercase()) }
+        val ordered = (flash + rest).map { it.name }
+        return ordered.ifEmpty { usable.map { it.name } }
+    }
+
+    /** First candidate: the first suitable flash model, else the first generateContent model. */
+    fun pickModel(models: List<ModelInfo>): String? = candidateModels(models).firstOrNull()
+
+    /** The model that last worked goes first; the others keep their order. */
+    fun tryOrder(names: List<String>, working: String?): List<String> =
+        if (working != null && working in names) listOf(working) + names.filter { it != working } else names
+
+    /** Shown when every model we tried answered 404. Contains model ids, never the key. */
+    fun noModelMessage(tried: List<String>, reason: String?, apiKey: String = ""): String {
+        val detail = reason?.let { LiveErrors.sanitize(it, apiKey, 160) }?.takeIf { it.isNotBlank() }
+        return "None of the Gemini models I tried could answer (HTTP 404): ${tried.joinToString(", ")}." +
+            (detail?.let { " Gemini said: $it" } ?: "") +
+            " Check that your API key can use Gemini models."
     }
 
     fun modelPath(name: String): String = if (name.startsWith("models/")) name else "models/$name"
