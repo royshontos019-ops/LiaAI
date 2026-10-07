@@ -15,8 +15,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.1.0
+
+      # 1. Build both APKs first, so you always get them.
       - run: gradle assembleDirectDebug assemblePlayDebug
       - uses: actions/upload-artifact@v4
         with:
           name: lia-apks
           path: app/build/outputs/apk/**/*.apk
+
+      # 2. Then run the unit tests. If any fails, the run turns red,
+      #    but the APKs above are already uploaded. --continue lists ALL failures at once.
+      - run: gradle testDirectDebugUnitTest testPlayDebugUnitTest --continue --console=plain
