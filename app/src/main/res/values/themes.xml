@@ -1,7 +1,10 @@
 <resources>
-    <style name="Theme.Lia" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Lia" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Same deep indigo night as the in-app dark theme, so there is no white flash. -->
+        <item name="android:windowBackground">#FF06050E</item>
+    </style>
     <style name="Theme.Lia.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#FF1B1B2F</item>
+        <item name="windowSplashScreenBackground">#FF06050E</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher</item>
         <item name="postSplashScreenTheme">@style/Theme.Lia</item>
     </style>

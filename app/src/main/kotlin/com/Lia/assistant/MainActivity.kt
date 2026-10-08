@@ -4,19 +4,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.NavHost
@@ -38,9 +38,18 @@ import androidx.navigation.compose.rememberNavController
 import com.Lia.assistant.data.ApiKeyStore
 import com.Lia.assistant.data.AssistantBrand
 import com.Lia.assistant.data.NovaAppState
-import com.Lia.assistant.data.ThemeMode
 import com.Lia.assistant.data.rememberNovaAppState
+import com.Lia.assistant.ui.components.NovaButton
+import com.Lia.assistant.ui.components.NovaGlassCard
+import com.Lia.assistant.ui.components.NovaOrb
+import com.Lia.assistant.ui.components.NovaSectionHeader
+import com.Lia.assistant.ui.components.NovaTextField
 import com.Lia.assistant.ui.screens.chat.ChatScreen
+import com.Lia.assistant.ui.theme.LocalBottomBarInset
+import com.Lia.assistant.ui.theme.NovaSpacing
+import com.Lia.assistant.ui.theme.NovaTheme
+import com.Lia.assistant.ui.theme.nightSky
+import com.Lia.assistant.voice.NovaOrbState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,12 +61,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val appState = rememberNovaAppState()
-            val dark = when (appState.themeMode) {
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            NovaTheme(mode = appState.themeMode, reducedMotion = appState.reducedMotion) {
+                LiaRoot(appState)
             }
-            LiaTheme(darkTheme = dark) { LiaRoot(appState) }
         }
     }
 }
@@ -74,24 +80,46 @@ private fun LiaRoot(appState: NovaAppState) {
 
 @Composable
 private fun HomeScreen(appState: NovaAppState, onOpenChat: () -> Unit) {
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(AssistantBrand.FULL_NAME, style = MaterialTheme.typography.headlineMedium)
-            Text(AssistantBrand.TAGLINE, style = MaterialTheme.typography.bodyLarge)
-            Text("Hi, I'm ${appState.assistantName} (${appState.personality.displayName})")
-            Text("Flavor: ${FlavorRoutes.FLAVOR_NAME}", style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onOpenChat) { Text("Open chat") }
-            ApiKeyBox()
-            AccessibilitySettingsRows()
+    val colors = NovaTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .nightSky(tilt = true)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = NovaSpacing.xl, vertical = NovaSpacing.xxl)
+            .padding(bottom = LocalBottomBarInset.current),
+        verticalArrangement = Arrangement.spacedBy(NovaSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Spacer(Modifier.height(NovaSpacing.xl))
+        NovaOrb(state = NovaOrbState.IDLE, diameter = 96.dp)
+        Text(AssistantBrand.FULL_NAME, style = NovaTheme.type.display, color = colors.textPrimary)
+        Text(AssistantBrand.TAGLINE, style = NovaTheme.type.voice, color = colors.textSecondary)
+
+        NovaGlassCard(Modifier.fillMaxWidth()) {
+            Text(
+                "Hi, I'm ${appState.assistantName} (${appState.personality.displayName})",
+                style = NovaTheme.type.title,
+                color = colors.textPrimary,
+            )
+            Text(
+                "Flavor: ${FlavorRoutes.FLAVOR_NAME}",
+                style = NovaTheme.type.caption,
+                color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(NovaSpacing.md))
+            NovaButton(
+                text = "Open chat",
+                onClick = onOpenChat,
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = Icons.AutoMirrored.Filled.Chat,
+            )
         }
+
+        ApiKeyCard()
+        AccessibilitySettingsRows()
     }
 }
 
@@ -100,7 +128,7 @@ private fun HomeScreen(appState: NovaAppState, onOpenChat: () -> Unit) {
  * The key is hidden while typing, stored on the phone only, and never logged.
  */
 @Composable
-private fun ApiKeyBox() {
+private fun ApiKeyCard() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var hasKey by remember { mutableStateOf(false) }
@@ -108,34 +136,36 @@ private fun ApiKeyBox() {
 
     LaunchedEffect(Unit) { hasKey = withContext(Dispatchers.IO) { ApiKeyStore.hasKey(context) } }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            if (hasKey) "Gemini API key: saved ✓" else "Gemini API key: not set yet",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        OutlinedTextField(
-            value = field,
-            onValueChange = { field = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Paste your Gemini API key") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        )
-        Button(
-            enabled = field.isNotBlank(),
-            onClick = {
-                val key = field
-                field = ""
-                scope.launch {
-                    withContext(Dispatchers.IO) { ApiKeyStore.saveKey(context, key) }
-                    hasKey = withContext(Dispatchers.IO) { ApiKeyStore.hasKey(context) }
-                }
-            },
-        ) { Text("Save key") }
+    Column(Modifier.fillMaxWidth()) {
+        NovaSectionHeader("Gemini API key")
+        NovaGlassCard(Modifier.fillMaxWidth()) {
+            Text(
+                if (hasKey) "Saved ✓" else "Not set yet",
+                style = NovaTheme.type.body,
+                color = if (hasKey) NovaTheme.colors.success else NovaTheme.colors.textSecondary,
+            )
+            Spacer(Modifier.height(NovaSpacing.md))
+            NovaTextField(
+                value = field,
+                onValueChange = { field = it },
+                label = "Paste your Gemini API key",
+                isPassword = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            )
+            Spacer(Modifier.height(NovaSpacing.md))
+            NovaButton(
+                text = "Save key",
+                enabled = field.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    val key = field
+                    field = ""
+                    scope.launch {
+                        withContext(Dispatchers.IO) { ApiKeyStore.saveKey(context, key) }
+                        hasKey = withContext(Dispatchers.IO) { ApiKeyStore.hasKey(context) }
+                    }
+                },
+            )
+        }
     }
 }
