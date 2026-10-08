@@ -39,9 +39,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.Lia.assistant.data.NovaAppState
 import com.Lia.assistant.ui.components.NovaComposerBar
 import com.Lia.assistant.ui.components.NovaEmptyState
-import com.Lia.assistant.ui.components.NovaOrb
 import com.Lia.assistant.ui.components.NovaTopBar
 import com.Lia.assistant.ui.components.NovaTypingBubble
+import com.Lia.assistant.ui.fx.LiaOrb3D
 import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaSpacing
 import com.Lia.assistant.ui.theme.nightSky
@@ -95,7 +95,7 @@ fun ChatScreen(
             title = appState.assistantName,
             subtitle = if (typing) "Typing…" else "Here to help",
             onBack = onBack,
-            leading = { NovaOrb(state = orbState, diameter = 38.dp) },
+            leading = { LiaOrb3D(state = orbState, size = 48.dp, name = appState.assistantName) },
         )
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
