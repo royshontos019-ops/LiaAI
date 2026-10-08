@@ -1,5 +1,23 @@
 package com.Lia.assistant.ui.screens.chat
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import com.Lia.assistant.ui.theme.NovaShapes
+import com.Lia.assistant.ui.theme.NovaSpacing
+import com.Lia.assistant.ui.theme.NovaTheme
+import com.Lia.assistant.ui.theme.depthSurface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ContentCopy
@@ -32,7 +50,17 @@ fun ChatMessageItem(
     onRevealProgress: () -> Unit,
     onRevealFinished: () -> Unit,
     modifier: Modifier = Modifier,
+    /** True for a message that just arrived: it rises into place. */
+    rise: Boolean = false,
+    /** When given, a reply that started the Forge shows a small preview chip that calls this. */
+    onOpenForge: (() -> Unit)? = null,
 ) {
+    val reduced = NovaTheme.reducedMotion
+    val settle = remember(message.id) { Animatable(if (rise && !reduced) 0f else 1f) }
+    LaunchedEffect(message.id) {
+        if (settle.value < 1f) settle.animateTo(1f, tween(320, easing = FastOutSlowInEasing))
+    }
+
     val tokens = remember(message.text) { RevealText.tokens(message.text) }
     val animating = message.animate && reveal && !message.isUser
     var shown by remember(message.id) { mutableIntStateOf(if (animating) 0 else tokens.size) }
@@ -83,5 +111,40 @@ fun ChatMessageItem(
             null
         }
 
-    NovaMessageBubble(message = bubble, modifier = modifier, actions = actions)
+    Column(
+        modifier = modifier.graphicsLayer {
+            translationY = (1f - settle.value) * 16.dp.toPx()
+            alpha = 0.35f + 0.65f * settle.value
+        },
+    ) {
+        // The shadow starts deep and settles to 4 dp as the bubble lands.
+        NovaMessageBubble(
+            message = bubble,
+            depth = 4.dp + 6.dp * (1f - settle.value),
+            actions = actions,
+        )
+        if (message.kind == MessageKind.FORGE && onOpenForge != null && finished) {
+            ForgeChip(onClick = onOpenForge, modifier = Modifier.padding(top = NovaSpacing.sm))
+        }
+    }
+}
+
+/** A small glass chip under a Forge reply. Opens the Forge. */
+@Composable
+private fun ForgeChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = NovaTheme.colors
+    val shape = NovaShapes.pill
+    Text(
+        text = "Open Forge preview",
+        style = NovaTheme.type.label,
+        color = colors.accent,
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .depthSurface(shape, 6.dp)
+            .clip(shape)
+            .background(colors.surfaceGlass)
+            .border(1.dp, colors.accent.copy(alpha = 0.5f), shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = NovaSpacing.lg, vertical = NovaSpacing.md),
+    )
 }

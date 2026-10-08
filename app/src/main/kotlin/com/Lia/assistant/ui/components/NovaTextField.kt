@@ -1,6 +1,23 @@
 package com.Lia.assistant.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.Lia.assistant.ui.theme.NovaMotion
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
@@ -148,13 +165,54 @@ fun NovaComposerBar(
                 unfocusedPlaceholderColor = colors.textTertiary,
             ),
         )
-        NovaIconButton(
-            icon = Icons.AutoMirrored.Filled.Send,
-            contentDescription = sendContentDescription,
-            onClick = onSend,
-            enabled = canSend,
-            tint = colors.accent,
-        )
+        ComposerSendButton(onClick = onSend, enabled = canSend, description = sendContentDescription)
         Spacer(Modifier.width(NovaSpacing.xs))
+    }
+}
+
+/** A round marigold Send button. 48 dp to touch, shrinks to 0.96 on press with a light tick. */
+@Composable
+private fun ComposerSendButton(onClick: () -> Unit, enabled: Boolean, description: String) {
+    val colors = NovaTheme.colors
+    val reduced = NovaTheme.reducedMotion
+    val haptic = LocalHapticFeedback.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && !reduced) 0.96f else 1f,
+        animationSpec = tween(NovaMotion.FAST_MS),
+        label = "sendScale",
+    )
+    Box(
+        modifier = Modifier
+            .size(NovaMinTouchTarget)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                alpha = if (enabled) 1f else 0.4f
+            }
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled,
+                role = Role.Button,
+            ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(colors.accent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Send,
+                contentDescription = null,
+                tint = colors.onAccent,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }

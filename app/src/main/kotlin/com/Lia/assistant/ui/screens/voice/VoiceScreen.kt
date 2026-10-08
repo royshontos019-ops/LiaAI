@@ -67,6 +67,7 @@ import com.Lia.assistant.data.ApiKeyStore
 import com.Lia.assistant.data.NovaAppState
 import com.Lia.assistant.ui.components.NovaButton
 import com.Lia.assistant.ui.fx.LiaOrb3D
+import com.Lia.assistant.ui.fx.tiltParallax
 import com.Lia.assistant.ui.theme.NovaMotion
 import com.Lia.assistant.ui.theme.NovaShapes
 import com.Lia.assistant.ui.theme.NovaSpacing
@@ -179,7 +180,7 @@ fun VoiceScreen(
         ) {
             Spacer(Modifier.weight(1f))
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(orbSize * 1.25f)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(orbSize * 1.25f).tiltParallax(8.dp)) {
                 LiaOrb3D(state = orbState, size = orbSize, amplitude = orbAmplitude, name = name)
                 VoiceRing(
                     amplitude = orbAmplitude,

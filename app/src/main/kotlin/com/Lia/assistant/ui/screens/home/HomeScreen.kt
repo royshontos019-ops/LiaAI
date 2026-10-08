@@ -63,6 +63,7 @@ import com.Lia.assistant.ui.components.NovaButtonStyle
 import com.Lia.assistant.ui.components.NovaGlassCard
 import com.Lia.assistant.ui.components.NovaOrb
 import com.Lia.assistant.ui.fx.LiaOrb3D
+import com.Lia.assistant.ui.fx.tiltParallax
 import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaMotion
 import com.Lia.assistant.ui.theme.NovaSpacing
@@ -141,17 +142,23 @@ fun HomeScreen(
     Box(
         modifier
             .fillMaxSize()
-            .nightSky(tilt = true)
-            .drawBehind {
-                drawRect(
-                    Brush.radialGradient(
-                        colors = listOf(tint.copy(alpha = strength), Color.Transparent),
-                        center = Offset(size.width / 2f, size.height * 0.36f),
-                        radius = size.width * 0.95f,
-                    ),
-                )
-            },
+            .nightSky(tilt = true),
     ) {
+        // Layer 1: the glow field sits deep, so it moves least.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .tiltParallax(3.dp)
+                .drawBehind {
+                    drawRect(
+                        Brush.radialGradient(
+                            colors = listOf(tint.copy(alpha = strength), Color.Transparent),
+                            center = Offset(size.width / 2f, size.height * 0.36f),
+                            radius = size.width * 0.95f,
+                        ),
+                    )
+                },
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -189,7 +196,9 @@ fun HomeScreen(
                 style = NovaTheme.type.voice,
                 color = colors.textPrimary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.graphicsLayer { alpha = segment(0f, 0.4f) },
+                modifier = Modifier
+                    .tiltParallax(6.dp)
+                    .graphicsLayer { alpha = segment(0f, 0.4f) },
             )
 
             Spacer(Modifier.height(NovaSpacing.lg))
@@ -197,6 +206,7 @@ fun HomeScreen(
             // Layer 3: the hero. Tap = open Voice.
             Box(
                 modifier = Modifier
+                    .tiltParallax(8.dp)
                     .graphicsLayer {
                         val p = segment(0.15f, 0.75f)
                         val s = (0.7f + 0.3f * p) * orbPress
@@ -228,7 +238,9 @@ fun HomeScreen(
                 style = NovaTheme.type.voice.copy(fontStyle = FontStyle.Italic),
                 color = colors.textSecondary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.graphicsLayer { alpha = segment(0.45f, 1f) },
+                modifier = Modifier
+                    .tiltParallax(6.dp)
+                    .graphicsLayer { alpha = segment(0.45f, 1f) },
             )
 
             Spacer(Modifier.height(NovaSpacing.xl))
@@ -237,6 +249,7 @@ fun HomeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .tiltParallax(10.dp)
                     .graphicsLayer { alpha = segment(0.45f, 1f) },
                 horizontalArrangement = Arrangement.spacedBy(NovaSpacing.md),
             ) {

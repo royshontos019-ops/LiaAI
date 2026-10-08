@@ -64,6 +64,8 @@ fun ChatScreen(
     var speakingId by remember { mutableStateOf<Long?>(null) }
 
     val listState = rememberLazyListState()
+    // Ids already shown once. A bubble only rises into place the first time it appears.
+    val seen = remember { mutableSetOf<Long>() }
     val scope = rememberCoroutineScope()
     var input by rememberSaveable { mutableStateOf("") }
 
@@ -113,8 +115,10 @@ fun ChatScreen(
                 verticalArrangement = Arrangement.spacedBy(NovaSpacing.sm),
             ) {
                 items(messages, key = { it.id }) { message ->
+                    val rise = remember(message.id) { seen.add(message.id) }
                     ChatMessageItem(
                         message = message,
+                        rise = rise,
                         reveal = !appState.reducedMotion,
                         isSpeaking = speech.speaking && speakingId == message.id,
                         onCopy = { copyToClipboard(context, message.text) },

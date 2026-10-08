@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.Lia.assistant.ui.theme.NovaSpacing
 import com.Lia.assistant.ui.theme.NovaTheme
@@ -51,6 +52,7 @@ private val AssistantShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp)
 fun NovaMessageBubble(
     message: ChatMessage,
     modifier: Modifier = Modifier,
+    depth: Dp = 4.dp,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val colors = NovaTheme.colors
@@ -60,7 +62,11 @@ fun NovaMessageBubble(
         message.isUser -> colors.userBubble
         else -> colors.assistantBubble
     }
-    val borderColor = if (message.isError) colors.error.copy(alpha = 0.6f) else colors.surfaceBorder
+    val borderColor = when {
+        message.isError -> colors.error.copy(alpha = 0.6f)
+        message.isUser -> colors.accent.copy(alpha = 0.35f)
+        else -> colors.surfaceBorder
+    }
 
     val caretAlpha = if (message.isStreaming && !NovaTheme.reducedMotion) {
         val transition = rememberInfiniteTransition(label = "caret")
@@ -94,7 +100,7 @@ fun NovaMessageBubble(
                 color = textColor,
                 modifier = Modifier
                     .widthIn(max = 320.dp)
-                    .then(if (message.isUser) Modifier else Modifier.depthSurface(shape, 4.dp))
+                    .depthSurface(shape, depth)
                     .clip(shape)
                     .background(background)
                     .border(1.dp, borderColor, shape)
