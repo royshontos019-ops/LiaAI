@@ -13,9 +13,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.Lia.assistant.MainActivity
+import com.Lia.assistant.OverlayEdgeGlowController
 import com.Lia.assistant.R
 import com.Lia.assistant.data.AssistantBrand
 import com.Lia.assistant.data.NovaPreferences
+import com.Lia.assistant.ui.fx.EdgeGlowBus
 
 /** Keeps the voice session alive (microphone foreground service) with a Stop action. */
 class VoiceForegroundService : Service() {
@@ -25,6 +27,8 @@ class VoiceForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             VoiceSessionManager.stop()
+            EdgeGlowBus.active.value = false
+            OverlayEdgeGlowController.hide()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -38,11 +42,15 @@ class VoiceForegroundService : Service() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
         )
         VoiceSessionManager.start(applicationContext)
+        EdgeGlowBus.active.value = true
+        OverlayEdgeGlowController.show(applicationContext)
         return START_STICKY
     }
 
     override fun onDestroy() {
         VoiceSessionManager.stop()
+        EdgeGlowBus.active.value = false
+        OverlayEdgeGlowController.hide()
         super.onDestroy()
     }
 

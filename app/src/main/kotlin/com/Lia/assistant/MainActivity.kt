@@ -4,7 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,9 +53,15 @@ import com.Lia.assistant.data.rememberNovaAppState
 import com.Lia.assistant.ui.components.NovaButton
 import com.Lia.assistant.ui.components.NovaGlassCard
 import com.Lia.assistant.ui.components.NovaOrb
+import com.Lia.assistant.ui.components.NovaOrbStyle
 import com.Lia.assistant.ui.components.NovaSectionHeader
 import com.Lia.assistant.ui.components.NovaTextField
+import com.Lia.assistant.ui.fx.EdgeGlowBus
+import com.Lia.assistant.ui.fx.EdgeGlowDialogHost
+import com.Lia.assistant.ui.fx.LiaOrb3D
 import com.Lia.assistant.ui.screens.chat.ChatScreen
+import com.Lia.assistant.ui.screens.splash.LiaSplash3D
+import com.Lia.assistant.ui.screens.splash.SplashSession
 import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaSpacing
 import com.Lia.assistant.ui.theme.NovaTheme
@@ -61,10 +78,26 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val appState = rememberNovaAppState()
+            // The 3D intro plays once per process; rotation and resume never replay it.
+            var splashVisible by remember { mutableStateOf(SplashSession.claim()) }
             NovaTheme(mode = appState.themeMode, reducedMotion = appState.reducedMotion) {
-                LiaRoot(appState)
+                Box(Modifier.fillMaxSize()) {
+                    LiaRoot(appState)
+                    if (splashVisible) LiaSplash3D(onFinished = { splashVisible = false })
+                }
+                EdgeGlowDialogHost() // above every screen
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        EdgeGlowBus.appVisible.value = true
+    }
+
+    override fun onStop() {
+        EdgeGlowBus.appVisible.value = false
+        super.onStop()
     }
 }
 
@@ -81,6 +114,18 @@ private fun LiaRoot(appState: NovaAppState) {
 @Composable
 private fun HomeScreen(appState: NovaAppState, onOpenChat: () -> Unit) {
     val colors = NovaTheme.colors
+    // Preview only: tap the orb to walk through the states until the voice screen exists.
+    var demo by remember { mutableStateOf(NovaOrbState.IDLE) }
+    LaunchedEffect(demo) { EdgeGlowBus.setFromOrb(demo) }
+    val demoLevel by rememberInfiniteTransition(label = "demoLevel").animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(tween(420, easing = LinearEasing), RepeatMode.Reverse),
+        label = "demoLevelValue",
+    )
+    val demoAmplitude =
+        if (demo == NovaOrbState.SPEAKING || demo == NovaOrbState.LISTENING) demoLevel else 0f
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -94,7 +139,20 @@ private fun HomeScreen(appState: NovaAppState, onOpenChat: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(NovaSpacing.xl))
-        NovaOrb(state = NovaOrbState.IDLE, diameter = 96.dp)
+        LiaOrb3D(
+            state = demo,
+            size = 200.dp,
+            amplitude = demoAmplitude,
+            modifier = Modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) { demo = NovaOrbState.entries[(demo.ordinal + 1) % NovaOrbState.entries.size] },
+        )
+        Text(
+            "Tap the orb: ${demo.name.lowercase()}",
+            style = NovaTheme.type.caption,
+            color = colors.textSecondary,
+        )
         Text(AssistantBrand.FULL_NAME, style = NovaTheme.type.display, color = colors.textPrimary)
         Text(AssistantBrand.TAGLINE, style = NovaTheme.type.voice, color = colors.textSecondary)
 
@@ -115,6 +173,32 @@ private fun HomeScreen(appState: NovaAppState, onOpenChat: () -> Unit) {
                 onClick = onOpenChat,
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = Icons.AutoMirrored.Filled.Chat,
+            )
+        }
+
+        NovaGlassCard(Modifier.fillMaxWidth()) {
+            Text("Orb styles (preview)", style = NovaTheme.type.title, color = colors.textPrimary)
+            Spacer(Modifier.height(NovaSpacing.md))
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(NovaSpacing.lg),
+            ) {
+                NovaOrbStyle.entries.forEach { orbStyle ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        NovaOrb(state = demo, diameter = 72.dp, amplitude = demoAmplitude, style = orbStyle)
+                        Text(
+                            orbStyle.name.lowercase(),
+                            style = NovaTheme.type.caption,
+                            color = colors.textSecondary,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(NovaSpacing.md))
+            NovaButton(
+                text = "Test edge glow",
+                onClick = { EdgeGlowBus.active.value = !EdgeGlowBus.active.value },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
