@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +49,7 @@ import com.Lia.assistant.ui.theme.NovaTheme
 import com.Lia.assistant.ui.theme.depthSurface
 import com.Lia.assistant.voice.NovaOrbState
 
-enum class NovaTab { HOME, CHAT }
+enum class NovaTab { HOME, CHAT, HISTORY, SETTINGS }
 
 /** Screens add this much bottom padding while the bar is showing, so content ends above it. */
 val NovaFloatingBarInset: Dp = 88.dp
@@ -57,8 +59,8 @@ private val OrbSlot = 88.dp
 private val OrbSize = 84.dp
 
 /**
- * The floating navigation bar: Home and Chat on the sides, the Talk orb docked in the middle and
- * raised a little above the bar. It floats over the content and casts a soft shadow.
+ * The floating navigation bar: Home and Chat on the left, History and Settings on the right, the
+ * Talk orb docked in the middle and raised a little above the bar. It floats over the content and casts a soft shadow.
  */
 @Composable
 fun NovaFloatingBar(
@@ -67,6 +69,8 @@ fun NovaFloatingBar(
     amplitude: Float,
     onHome: () -> Unit,
     onChat: () -> Unit,
+    onHistory: () -> Unit,
+    onSettings: () -> Unit,
     onTalk: () -> Unit,
     modifier: Modifier = Modifier,
     assistantName: String = "Lia",
@@ -110,12 +114,26 @@ fun NovaFloatingBar(
                 onClick = onHome,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.width(OrbSlot))
             BarItem(
                 label = "Chat",
                 icon = Icons.AutoMirrored.Filled.Chat,
                 selected = selected == NovaTab.CHAT,
                 onClick = onChat,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(OrbSlot))
+            BarItem(
+                label = "History",
+                icon = Icons.Filled.History,
+                selected = selected == NovaTab.HISTORY,
+                onClick = onHistory,
+                modifier = Modifier.weight(1f),
+            )
+            BarItem(
+                label = "Settings",
+                icon = Icons.Filled.Settings,
+                selected = selected == NovaTab.SETTINGS,
+                onClick = onSettings,
                 modifier = Modifier.weight(1f),
             )
         }

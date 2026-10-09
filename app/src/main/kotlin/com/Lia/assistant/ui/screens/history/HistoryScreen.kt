@@ -52,6 +52,7 @@ import com.Lia.assistant.ui.components.NovaIconButton
 import com.Lia.assistant.ui.components.NovaOrb
 import com.Lia.assistant.ui.components.NovaTextField
 import com.Lia.assistant.ui.components.NovaTopBar
+import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaShapes
 import com.Lia.assistant.ui.theme.NovaSpacing
 import com.Lia.assistant.ui.theme.NovaTheme
@@ -143,8 +144,13 @@ fun HistoryScreen(
                         val listState = rememberLazyListState()
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize().navigationBarsPadding(),
-                            contentPadding = PaddingValues(horizontal = NovaSpacing.xl, vertical = NovaSpacing.md),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                start = NovaSpacing.xl,
+                                end = NovaSpacing.xl,
+                                top = NovaSpacing.md,
+                                bottom = NovaSpacing.md + LocalBottomBarInset.current,
+                            ),
                             verticalArrangement = Arrangement.spacedBy(NovaSpacing.sm),
                         ) {
                             items(shown, key = { it.id }) { conversation ->

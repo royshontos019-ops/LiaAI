@@ -36,6 +36,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -100,6 +109,7 @@ private fun hasMic(context: Context): Boolean =
 fun VoiceScreen(
     appState: NovaAppState,
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit = onClose,
 ) {
     val context = LocalContext.current
     val colors = NovaTheme.colors
@@ -178,6 +188,21 @@ fun VoiceScreen(
                 .padding(horizontal = NovaSpacing.xl, vertical = NovaSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Top: the assistant's name and a small minimize button.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(text = name, style = NovaTheme.type.headline, color = colors.textPrimary)
+                Spacer(Modifier.weight(1f))
+                CircleControl(
+                    icon = Icons.Filled.KeyboardArrowDown,
+                    label = null,
+                    description = "Minimize",
+                    onClick = onClose,
+                    diameter = 48.dp,
+                    tint = colors.textPrimary,
+                    background = colors.surfaceGlass,
+                )
+            }
+
             Spacer(Modifier.weight(1f))
 
             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(orbSize * 1.25f).tiltParallax(8.dp)) {
@@ -217,58 +242,63 @@ fun VoiceScreen(
                 VoiceStage.NO_KEY -> {
                     Spacer(Modifier.height(NovaSpacing.sm))
                     Text(
-                        text = "Add your Gemini API key on the Home screen, then open Voice again.",
+                        text = "Add your Gemini API key in Settings, then open Voice again.",
                         style = NovaTheme.type.body,
                         color = colors.textSecondary,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(NovaSpacing.lg))
-                    NovaButton(text = "Go to Home", onClick = onClose)
+                    NovaButton(text = "Open Settings", onClick = onOpenSettings)
                 }
-                VoiceStage.LIVE -> Unit
+                VoiceStage.LIVE -> if (active) {
+                    Spacer(Modifier.height(NovaSpacing.xs))
+                    Text(
+                        text = "Keeps listening if you leave this screen.",
+                        style = NovaTheme.type.caption,
+                        color = colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
 
             Spacer(Modifier.weight(1f))
 
-            // Frosted control row.
-            val shape = NovaShapes.pill
+            // Controls: Mute, a big End button, and Minimize.
+            val live = stage == VoiceStage.LIVE && active && state != NovaOrbState.ERROR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .depthSurface(shape, 8.dp)
-                    .clip(shape)
-                    .background(colors.surfaceGlass)
-                    .border(1.dp, colors.surfaceBorder, shape)
-                    .padding(NovaSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(NovaSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(bottom = NovaSpacing.sm),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom,
             ) {
-                val live = stage == VoiceStage.LIVE && active && state != NovaOrbState.ERROR
-                ControlButton(
-                    text = if (muted) "Unmute" else "Mute",
+                CircleControl(
+                    icon = if (muted) Icons.Filled.MicOff else Icons.Filled.Mic,
+                    label = if (muted) "Unmute" else "Mute",
                     onClick = { VoiceSessionManager.toggleMute() },
-                    modifier = Modifier.weight(1f),
+                    diameter = 60.dp,
                     tint = colors.textPrimary,
-                    background = Color.Transparent,
+                    background = colors.surfaceGlass,
                     enabled = live,
                 )
-                ControlButton(
-                    text = "Stop",
+                CircleControl(
+                    icon = Icons.Filled.CallEnd,
+                    label = "End",
                     onClick = {
                         VoiceForegroundService.stop(context)
                         onClose()
                     },
-                    modifier = Modifier.weight(1.3f),
-                    tint = colors.error,
-                    background = colors.error.copy(alpha = 0.20f),
-                    large = true,
+                    diameter = 76.dp,
+                    tint = Color.White,
+                    background = colors.error,
                 )
-                ControlButton(
-                    text = "Close",
+                CircleControl(
+                    icon = Icons.Filled.KeyboardArrowDown,
+                    label = "Minimize",
                     onClick = onClose,
-                    modifier = Modifier.weight(1f),
+                    diameter = 60.dp,
                     tint = colors.textPrimary,
-                    background = Color.Transparent,
+                    background = colors.surfaceGlass,
                 )
             }
         }
@@ -281,55 +311,63 @@ private fun openAppSettings(context: Context) {
     context.startActivity(intent)
 }
 
-/** One button of the control row: 48 dp or taller, shrinks to 0.96 on press with a light tick. */
+/** A round button with an icon and an optional label below it. Shrinks a little when pressed. */
 @Composable
-private fun ControlButton(
-    text: String,
+private fun CircleControl(
+    icon: ImageVector,
+    label: String?,
     onClick: () -> Unit,
-    modifier: Modifier,
+    diameter: Dp,
     tint: Color,
     background: Color,
+    modifier: Modifier = Modifier,
+    description: String? = null,
     enabled: Boolean = true,
-    large: Boolean = false,
 ) {
+    val colors = NovaTheme.colors
     val reduced = NovaTheme.reducedMotion
     val haptic = LocalHapticFeedback.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && !reduced) 0.96f else 1f,
+        targetValue = if (pressed && !reduced) 0.94f else 1f,
         animationSpec = tween(NovaMotion.FAST_MS),
         label = "controlScale",
     )
-    val shape = NovaShapes.pill
-    Box(
+    Column(
         modifier = modifier
-            .heightIn(min = if (large) 56.dp else 48.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
                 alpha = if (enabled) 1f else 0.4f
             }
-            .clip(shape)
-            .background(background)
-            .then(if (large) Modifier.border(1.dp, tint.copy(alpha = 0.6f), shape) else Modifier)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
                 enabled = enabled,
+                onClickLabel = description ?: label,
                 role = Role.Button,
             ) {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
-            }
-            .padding(horizontal = NovaSpacing.md, vertical = NovaSpacing.sm),
-        contentAlignment = Alignment.Center,
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = text,
-            style = NovaTheme.type.body.copy(fontWeight = FontWeight.Bold),
-            color = tint,
-        )
+        Box(
+            modifier = Modifier
+                .size(diameter)
+                .depthSurface(CircleShape, 8.dp)
+                .clip(CircleShape)
+                .background(background)
+                .border(1.dp, colors.surfaceBorder, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(diameter * 0.42f))
+        }
+        if (label != null) {
+            Spacer(Modifier.height(NovaSpacing.xs))
+            Text(text = label, style = NovaTheme.type.caption, color = colors.textSecondary)
+        }
     }
 }
 

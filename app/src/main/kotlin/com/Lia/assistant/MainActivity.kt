@@ -107,7 +107,7 @@ private fun LiaRoot(appState: NovaAppState) {
     val route = backStack?.destination?.route
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     // The bar floats on Home and Chat; Voice is full-bleed, and the keyboard needs the room.
-    val barVisible = (route == "home" || route == "chat") && !imeVisible
+    val barVisible = (route == "home" || route == "chat" || route == "history" || route == "settings") && !imeVisible
     val voiceState by VoiceSessionManager.state.collectAsStateWithLifecycle()
     val amplitude by VoiceSessionManager.amplitude.collectAsStateWithLifecycle()
 
@@ -122,7 +122,7 @@ private fun LiaRoot(appState: NovaAppState) {
                         appState = appState,
                         onTalk = { nav.navigate("voice") { launchSingleTop = true } },
                         onType = { openChat(null) },
-                        onSettings = { nav.navigate("settings") { launchSingleTop = true } },
+                        onProfile = { nav.navigate("profile") { launchSingleTop = true } },
                         onQuickActions = { nav.navigate("quickactions") { launchSingleTop = true } },
                     )
                 }
@@ -135,7 +135,13 @@ private fun LiaRoot(appState: NovaAppState) {
                         onHistory = { nav.navigate("history") { launchSingleTop = true } },
                     )
                 }
-                composable("voice") { VoiceScreen(appState = appState, onClose = { nav.popBackStack() }) }
+                composable("voice") {
+                    VoiceScreen(
+                        appState = appState,
+                        onClose = { nav.popBackStack() },
+                        onOpenSettings = { nav.navigate("settings") { launchSingleTop = true } },
+                    )
+                }
                 composable("settings") {
                     SettingsScreen(
                         appState = appState,
@@ -192,7 +198,12 @@ private fun LiaRoot(appState: NovaAppState) {
             }
             if (barVisible) {
                 NovaFloatingBar(
-                    selected = if (route == "chat") NovaTab.CHAT else NovaTab.HOME,
+                    selected = when (route) {
+                        "chat" -> NovaTab.CHAT
+                        "history" -> NovaTab.HISTORY
+                        "settings" -> NovaTab.SETTINGS
+                        else -> NovaTab.HOME
+                    },
                     orbState = voiceState,
                     amplitude = amplitude,
                     onHome = {
@@ -202,6 +213,22 @@ private fun LiaRoot(appState: NovaAppState) {
                         }
                     },
                     onChat = { if (route != "chat") openChat(null) },
+                    onHistory = {
+                        if (route != "history") {
+                            nav.navigate("history") {
+                                popUpTo("home") { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onSettings = {
+                        if (route != "settings") {
+                            nav.navigate("settings") {
+                                popUpTo("home") { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                     onTalk = { nav.navigate("voice") { launchSingleTop = true } },
                     modifier = Modifier.align(Alignment.BottomCenter),
                     assistantName = appState.assistantName,

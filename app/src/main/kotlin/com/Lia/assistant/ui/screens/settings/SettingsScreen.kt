@@ -37,6 +37,7 @@ import com.Lia.assistant.ui.components.NovaGlassCard
 import com.Lia.assistant.ui.components.NovaSectionHeader
 import com.Lia.assistant.ui.components.NovaSettingsRow
 import com.Lia.assistant.ui.components.NovaTopBar
+import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaSpacing
 import com.Lia.assistant.ui.theme.NovaTheme
 import com.Lia.assistant.ui.theme.nightSky
@@ -206,7 +207,7 @@ fun SettingsScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.height(NovaSpacing.xl))
+                Spacer(Modifier.height(NovaSpacing.xl + LocalBottomBarInset.current))
             }
         }
     }

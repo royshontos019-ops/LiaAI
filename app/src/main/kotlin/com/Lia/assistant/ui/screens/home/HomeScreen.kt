@@ -33,7 +33,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -91,6 +92,12 @@ private fun greetingFor(hour: Int): String = when (hour) {
     else -> "Good night"
 }
 
+/** "Good evening, Ochinto", or just "Good evening" when no name is set. */
+private fun greetingText(hour: Int, name: String): String {
+    val who = name.trim()
+    return if (who.isEmpty()) greetingFor(hour) else "${greetingFor(hour)}, $who"
+}
+
 /**
  * Home as a stage: night sky, a glow field tinted by the live voice state, the 3D orb as the hero,
  * and floating pills under it. [extra] is an optional slot for cards below the stage.
@@ -100,7 +107,7 @@ fun HomeScreen(
     appState: NovaAppState,
     onTalk: () -> Unit,
     onType: () -> Unit,
-    onSettings: () -> Unit = {},
+    onProfile: () -> Unit = {},
     onQuickActions: () -> Unit = {},
     modifier: Modifier = Modifier,
     extra: @Composable ColumnScope.() -> Unit = {},
@@ -174,29 +181,25 @@ fun HomeScreen(
                 .padding(bottom = LocalBottomBarInset.current),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Header: a floating glass circle with the small orb.
+            // Header: the wordmark on the left, a floating profile circle on the right.
             Row(
                 Modifier
                     .fillMaxWidth()
                     .padding(top = NovaSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    Modifier
-                        .size(48.dp)
-                        .depthSurface(CircleShape, 6.dp)
-                        .clip(CircleShape)
-                        .background(colors.surfaceGlass)
-                        .border(1.dp, colors.surfaceBorder, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    NovaOrb(
-                        state = voiceState,
-                        diameter = 28.dp,
-                        name = appState.assistantName,
-                        style = orbStyleFromId(appState.orbStyle),
-                    )
-                }
+                NovaOrb(
+                    state = voiceState,
+                    diameter = 36.dp,
+                    name = appState.assistantName,
+                    style = orbStyleFromId(appState.orbStyle),
+                )
+                Spacer(Modifier.width(NovaSpacing.sm))
+                Text(
+                    text = appState.assistantName,
+                    style = NovaTheme.type.headline,
+                    color = colors.textPrimary,
+                )
                 Spacer(Modifier.weight(1f))
                 Box(
                     Modifier
@@ -205,18 +208,23 @@ fun HomeScreen(
                         .clip(CircleShape)
                         .background(colors.surfaceGlass)
                         .border(1.dp, colors.surfaceBorder, CircleShape)
-                        .clickable(role = Role.Button, onClickLabel = "Settings", onClick = onSettings)
-                        .semantics { contentDescription = "Settings" },
+                        .clickable(role = Role.Button, onClickLabel = "Profile", onClick = onProfile)
+                        .semantics { contentDescription = "Profile" },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Filled.Settings, contentDescription = null, tint = colors.textSecondary)
+                    val initial = appState.userName.trim().take(1).uppercase()
+                    if (initial.isEmpty()) {
+                        Icon(Icons.Filled.Person, contentDescription = null, tint = colors.textSecondary)
+                    } else {
+                        Text(text = initial, style = NovaTheme.type.title, color = colors.accent)
+                    }
                 }
             }
 
             Spacer(Modifier.height(NovaSpacing.xl))
 
             Text(
-                text = greetingFor(LocalTime.now().hour),
+                text = greetingText(LocalTime.now().hour, appState.userName),
                 style = NovaTheme.type.voice,
                 color = colors.textPrimary,
                 textAlign = TextAlign.Center,
@@ -277,7 +285,7 @@ fun HomeScreen(
                     .graphicsLayer { alpha = segment(0.45f, 1f) },
                 horizontalArrangement = Arrangement.spacedBy(NovaSpacing.md),
             ) {
-                NovaButton(text = "Talk", onClick = onTalk, modifier = Modifier.weight(1f))
+                NovaButton(text = "Talk", onClick = onTalk, modifier = Modifier.weight(1f), leadingIcon = Icons.Filled.Mic)
                 NovaButton(
                     text = "Type",
                     onClick = onType,
