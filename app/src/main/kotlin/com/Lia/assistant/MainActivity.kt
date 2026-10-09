@@ -35,6 +35,12 @@ import com.Lia.assistant.ui.fx.LocalTilt
 import com.Lia.assistant.ui.fx.rememberDeviceTilt
 import com.Lia.assistant.ui.screens.chat.ChatScreen
 import com.Lia.assistant.ui.screens.home.HomeScreen
+import com.Lia.assistant.ui.screens.history.HistoryScreen
+import com.Lia.assistant.ui.screens.permissions.PermissionsScreen
+import com.Lia.assistant.ui.screens.profile.AboutScreen
+import com.Lia.assistant.ui.screens.profile.PrivacyScreen
+import com.Lia.assistant.ui.screens.profile.ProfileScreen
+import com.Lia.assistant.ui.screens.quickactions.QuickActionsScreen
 import com.Lia.assistant.ui.screens.settings.OrbStyleScreen
 import com.Lia.assistant.ui.screens.settings.PersonalityScreen
 import com.Lia.assistant.ui.screens.settings.SettingsScreen
@@ -85,6 +91,17 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun LiaRoot(appState: NovaAppState) {
     val nav = rememberNavController()
+    // Which saved chat to open, and a phrase to send at once (from Quick actions).
+    var openConversationId by remember { mutableStateOf<String?>(null) }
+    var autoSendText by remember { mutableStateOf<String?>(null) }
+    fun openChat(conversationId: String?, autoSend: String? = null) {
+        openConversationId = conversationId
+        autoSendText = autoSend
+        nav.navigate("chat") {
+            popUpTo("home") { inclusive = false }
+            launchSingleTop = true
+        }
+    }
     val tilt = rememberDeviceTilt(enabled = !appState.reducedMotion)
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -104,18 +121,33 @@ private fun LiaRoot(appState: NovaAppState) {
                     HomeScreen(
                         appState = appState,
                         onTalk = { nav.navigate("voice") { launchSingleTop = true } },
-                        onType = { nav.navigate("chat") { launchSingleTop = true } },
+                        onType = { openChat(null) },
                         onSettings = { nav.navigate("settings") { launchSingleTop = true } },
+                        onQuickActions = { nav.navigate("quickactions") { launchSingleTop = true } },
                     )
                 }
-                composable("chat") { ChatScreen(appState = appState, onBack = { nav.popBackStack() }) }
+                composable("chat") {
+                    ChatScreen(
+                        appState = appState,
+                        onBack = { nav.popBackStack() },
+                        conversationId = openConversationId,
+                        autoSend = autoSendText,
+                        onHistory = { nav.navigate("history") { launchSingleTop = true } },
+                    )
+                }
                 composable("voice") { VoiceScreen(appState = appState, onClose = { nav.popBackStack() }) }
                 composable("settings") {
                     SettingsScreen(
                         appState = appState,
                         onBack = { nav.popBackStack() },
+                        onOpenProfile = { nav.navigate("profile") { launchSingleTop = true } },
                         onOpenPersonality = { nav.navigate("personality") { launchSingleTop = true } },
                         onOpenOrbStyle = { nav.navigate("orbstyle") { launchSingleTop = true } },
+                        onOpenQuickActions = { nav.navigate("quickactions") { launchSingleTop = true } },
+                        onOpenHistory = { nav.navigate("history") { launchSingleTop = true } },
+                        onOpenPermissions = { nav.navigate("permissions") { launchSingleTop = true } },
+                        onOpenPrivacy = { nav.navigate("privacy") { launchSingleTop = true } },
+                        onOpenAbout = { nav.navigate("about") { launchSingleTop = true } },
                     ) {
                         AccessibilitySettingsRows()
                     }
@@ -125,6 +157,36 @@ private fun LiaRoot(appState: NovaAppState) {
                 }
                 composable("orbstyle") {
                     OrbStyleScreen(appState = appState, onBack = { nav.popBackStack() })
+                }
+                composable("history") {
+                    HistoryScreen(
+                        appState = appState,
+                        onBack = { nav.popBackStack() },
+                        onOpen = { id -> openChat(id) },
+                        onNewChat = { openChat(null) },
+                    )
+                }
+                composable("quickactions") {
+                    QuickActionsScreen(
+                        appState = appState,
+                        onBack = { nav.popBackStack() },
+                        onVoice = { nav.navigate("voice") { launchSingleTop = true } },
+                        onChat = { phrase -> openChat(null, phrase) },
+                    )
+                }
+                composable("permissions") {
+                    PermissionsScreen(onBack = { nav.popBackStack() }) { refreshKey ->
+                        AccessibilityPermissionRow(refreshKey)
+                    }
+                }
+                composable("profile") {
+                    ProfileScreen(appState = appState, onBack = { nav.popBackStack() })
+                }
+                composable("privacy") {
+                    PrivacyScreen(onBack = { nav.popBackStack() })
+                }
+                composable("about") {
+                    AboutScreen(appState = appState, onBack = { nav.popBackStack() })
                 }
                 flavorDestinations(nav) // same function in direct and play
             }
@@ -139,7 +201,7 @@ private fun LiaRoot(appState: NovaAppState) {
                             launchSingleTop = true
                         }
                     },
-                    onChat = { nav.navigate("chat") { launchSingleTop = true } },
+                    onChat = { if (route != "chat") openChat(null) },
                     onTalk = { nav.navigate("voice") { launchSingleTop = true } },
                     modifier = Modifier.align(Alignment.BottomCenter),
                     assistantName = appState.assistantName,

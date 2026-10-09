@@ -101,6 +101,7 @@ fun HomeScreen(
     onTalk: () -> Unit,
     onType: () -> Unit,
     onSettings: () -> Unit = {},
+    onQuickActions: () -> Unit = {},
     modifier: Modifier = Modifier,
     extra: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -288,14 +289,20 @@ fun HomeScreen(
 
             Spacer(Modifier.height(NovaSpacing.xl))
 
-            Text(
-                text = "Try saying",
-                style = NovaTheme.type.caption,
-                color = colors.textSecondary,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .graphicsLayer { alpha = segment(0.45f, 1f) },
-            )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Try saying",
+                    style = NovaTheme.type.caption,
+                    color = colors.textSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                NovaButton(text = "See all", onClick = onQuickActions, style = NovaButtonStyle.TEXT)
+            }
             Spacer(Modifier.height(NovaSpacing.sm))
 
             val listState = rememberLazyListState()

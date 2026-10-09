@@ -5,7 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.Lia.assistant.Forge
 import com.Lia.assistant.data.ApiKeyStore
+import com.Lia.assistant.data.ConversationStore
 import com.Lia.assistant.data.PersonalityRepository
+import com.Lia.assistant.data.StoredChat
+import com.Lia.assistant.data.StoredMessage
 import com.Lia.assistant.voice.ChatPromptBuilder
 import com.Lia.assistant.voice.ChatReplyResult
 import com.Lia.assistant.voice.ChatTurn
@@ -22,7 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-/** Typed chat state. History lives in memory only and is gone when the chat screen is left. */
+/** Typed chat state. Every message is also saved on the phone, unless the user switched that off in Privacy. */
 class ChatViewModel(app: Application) : AndroidViewModel(app) {
     private val appContext = app.applicationContext
 
@@ -35,10 +38,37 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     private var nextId = 1L
     private var job: Job? = null
 
+    private var conversationId: String? = null
+    private var opened = false
+    private var autoSent = false
+
+    /** Opens a saved conversation, or starts a fresh one when [id] is null. Only the first call counts. */
+    fun open(id: String?) {
+        if (opened) return
+        opened = true
+        if (id == null) return
+        viewModelScope.launch {
+            val chat = withContext(Dispatchers.IO) { ConversationStore.load(appContext, id) } ?: return@launch
+            conversationId = chat.id
+            _messages.value = chat.messages.mapIndexed { index, m ->
+                ChatMessage(index + 1L, m.isUser, m.text, kindFromName(m.kind))
+            }
+            nextId = chat.messages.size + 1L
+        }
+    }
+
+    /** Sends [raw] once (used by the Quick actions tile). */
+    fun sendOnce(raw: String) {
+        if (autoSent) return
+        autoSent = true
+        send(raw)
+    }
+
     fun send(raw: String) {
         val text = raw.trim()
         if (text.isEmpty() || _isTyping.value) return
         _messages.update { it + ChatMessage(nextId++, isUser = true, text = text) }
+        persist()
         respondTo(text)
     }
 
@@ -99,5 +129,22 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun addAssistant(text: String, kind: MessageKind, animate: Boolean) {
         _messages.update { it + ChatMessage(nextId++, isUser = false, text = text, kind = kind, animate = animate) }
+        persist()
+    }
+
+    private fun kindFromName(name: String): MessageKind =
+        MessageKind.entries.firstOrNull { it.name == name } ?: MessageKind.NORMAL
+
+    /** Saves the whole conversation in the background (nothing happens when saving is off). */
+    private fun persist() {
+        if (!ConversationStore.isSavingEnabled(appContext)) return
+        val snapshot = _messages.value
+        if (snapshot.isEmpty()) return
+        val id = conversationId ?: ConversationStore.newId().also { conversationId = it }
+        val title = snapshot.firstOrNull { it.isUser }?.text
+            ?.replace('\n', ' ')?.trim()?.take(48).orEmpty()
+            .ifBlank { "Conversation" }
+        val stored = snapshot.map { StoredMessage(it.isUser, it.text, it.kind.name) }
+        ConversationStore.saveAsync(appContext, StoredChat(id, title, System.currentTimeMillis(), stored))
     }
 }

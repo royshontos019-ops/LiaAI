@@ -1,7 +1,5 @@
 package com.Lia.assistant.ui.screens.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,47 +8,38 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.Lia.assistant.data.AssistantBrand
 import com.Lia.assistant.data.LanguagePreference
 import com.Lia.assistant.data.NovaAppState
 import com.Lia.assistant.data.ThemeMode
+import com.Lia.assistant.ui.components.NovaAvatar
 import com.Lia.assistant.ui.components.NovaChoiceChips
 import com.Lia.assistant.ui.components.NovaGlassCard
 import com.Lia.assistant.ui.components.NovaSectionHeader
 import com.Lia.assistant.ui.components.NovaSettingsRow
-import com.Lia.assistant.ui.components.NovaTextField
 import com.Lia.assistant.ui.components.NovaTopBar
 import com.Lia.assistant.ui.theme.NovaSpacing
 import com.Lia.assistant.ui.theme.NovaTheme
 import com.Lia.assistant.ui.theme.nightSky
-import kotlinx.coroutines.delay
 
 private val VoiceNames = listOf("Aoede", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Zephyr")
 
@@ -71,25 +60,18 @@ private fun themeLabel(mode: ThemeMode): String = when (mode) {
 fun SettingsScreen(
     appState: NovaAppState,
     onBack: () -> Unit,
+    onOpenProfile: () -> Unit,
     onOpenPersonality: () -> Unit,
     onOpenOrbStyle: () -> Unit,
+    onOpenQuickActions: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenPermissions: () -> Unit,
+    onOpenPrivacy: () -> Unit,
+    onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
     extra: @Composable ColumnScope.() -> Unit = {},
 ) {
     val colors = NovaTheme.colors
-
-    // The two name fields save a moment after you stop typing.
-    var nameField by remember(appState.isLoaded) { mutableStateOf(appState.userName) }
-    var assistantField by remember(appState.isLoaded) { mutableStateOf(appState.assistantName) }
-    LaunchedEffect(nameField) {
-        delay(500)
-        if (nameField.trim() != appState.userName) appState.applyUserName(nameField)
-    }
-    LaunchedEffect(assistantField) {
-        delay(700)
-        val clean = assistantField.trim().ifEmpty { AssistantBrand.NAME }
-        if (clean != appState.assistantName) appState.applyAssistantName(assistantField)
-    }
 
     Box(modifier.fillMaxSize().nightSky(tilt = true)) {
         Column(Modifier.fillMaxSize()) {
@@ -100,59 +82,35 @@ fun SettingsScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .navigationBarsPadding()
-                    .imePadding()
                     .padding(horizontal = NovaSpacing.xl),
                 verticalArrangement = Arrangement.spacedBy(NovaSpacing.lg),
             ) {
                 // 0: profile
                 NovaGlassCard(Modifier.fillMaxWidth(), elevation = depthOf(0)) {
-                    Box(
-                        modifier = Modifier.align(Alignment.CenterHorizontally).size(104.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Box(
-                            Modifier
-                                .fillMaxSize()
-                                .drawBehind {
-                                    drawCircle(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(colors.accentGlow, Color.Transparent),
-                                            center = center,
-                                            radius = size.minDimension / 2f,
-                                        ),
-                                        radius = size.minDimension / 2f,
-                                    )
-                                },
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(68.dp)
-                                .clip(CircleShape)
-                                .background(colors.surfaceRaised)
-                                .border(1.dp, colors.accent, CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = nameField.trim().take(1).uppercase().ifEmpty { "✦" },
-                                style = NovaTheme.type.headline,
-                                color = colors.accent,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(NovaSpacing.md))
-                    NovaTextField(
-                        value = nameField,
-                        onValueChange = { nameField = it },
-                        label = "Your name",
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    NovaAvatar(
+                        initial = appState.userName.trim().take(1).uppercase().ifEmpty { "✦" },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
                     )
-                    Spacer(Modifier.height(NovaSpacing.md))
-                    NovaTextField(
-                        value = assistantField,
-                        onValueChange = { assistantField = it },
-                        label = "Assistant name",
-                        supportingText = "Empty means ${AssistantBrand.NAME}",
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    Spacer(Modifier.height(NovaSpacing.sm))
+                    Text(
+                        text = appState.userName.ifBlank { "Add your name" },
+                        style = NovaTheme.type.title,
+                        color = colors.textPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = "Your assistant: ${appState.assistantName}",
+                        style = NovaTheme.type.caption,
+                        color = colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(NovaSpacing.sm))
+                    NovaSettingsRow(
+                        title = "Edit profile",
+                        icon = Icons.Filled.Person,
+                        onClick = onOpenProfile,
                     )
                 }
 
@@ -223,8 +181,20 @@ fun SettingsScreen(
                     }
                 }
 
-                // 3: the Gemini API key (moved here from Home)
-                ApiKeyCard(elevation = depthOf(3))
+                // 3: more screens
+                Column(Modifier.fillMaxWidth()) {
+                    NovaSectionHeader("More")
+                    NovaGlassCard(Modifier.fillMaxWidth(), elevation = depthOf(3)) {
+                        NovaSettingsRow(title = "Quick actions", icon = Icons.Filled.Build, onClick = onOpenQuickActions)
+                        NovaSettingsRow(title = "History", icon = Icons.Filled.History, onClick = onOpenHistory)
+                        NovaSettingsRow(title = "Permissions", icon = Icons.Filled.CheckCircle, onClick = onOpenPermissions)
+                        NovaSettingsRow(title = "Privacy", icon = Icons.Filled.Lock, onClick = onOpenPrivacy)
+                        NovaSettingsRow(title = "About", icon = Icons.Filled.Info, onClick = onOpenAbout)
+                    }
+                }
+
+                // 4: the Gemini API key
+                ApiKeyCard(elevation = depthOf(4))
 
                 // Screen control (direct build only; empty in the Play build)
                 extra()

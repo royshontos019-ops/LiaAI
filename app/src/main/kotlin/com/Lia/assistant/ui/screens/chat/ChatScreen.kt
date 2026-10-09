@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.Lia.assistant.data.NovaAppState
 import com.Lia.assistant.ui.components.NovaComposerBar
 import com.Lia.assistant.ui.components.NovaEmptyState
+import com.Lia.assistant.ui.components.NovaIconButton
 import com.Lia.assistant.ui.components.NovaTopBar
 import com.Lia.assistant.ui.components.NovaTypingBubble
 import com.Lia.assistant.ui.fx.LiaOrb3D
@@ -52,11 +55,20 @@ import kotlinx.coroutines.launch
 fun ChatScreen(
     appState: NovaAppState,
     onBack: () -> Unit,
+    conversationId: String? = null,
+    autoSend: String? = null,
+    onHistory: () -> Unit = {},
     viewModel: ChatViewModel = viewModel(),
 ) {
     val context = LocalContext.current
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val typing by viewModel.isTyping.collectAsStateWithLifecycle()
+
+    // Open a saved chat (or send the Quick actions phrase). Each happens once per chat screen.
+    LaunchedEffect(conversationId, autoSend) {
+        viewModel.open(conversationId)
+        if (autoSend != null) viewModel.sendOnce(autoSend)
+    }
 
     // Created once; the speech engine is released when the screen leaves.
     val speech = remember { SpeechController(context) }
@@ -98,6 +110,13 @@ fun ChatScreen(
             subtitle = if (typing) "Typing…" else "Here to help",
             onBack = onBack,
             leading = { LiaOrb3D(state = orbState, size = 48.dp, name = appState.assistantName) },
+            actions = {
+                NovaIconButton(
+                    icon = Icons.Filled.History,
+                    contentDescription = "History",
+                    onClick = onHistory,
+                )
+            },
         )
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
