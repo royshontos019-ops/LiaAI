@@ -33,6 +33,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +66,7 @@ import com.Lia.assistant.ui.components.NovaGlassCard
 import com.Lia.assistant.ui.components.NovaOrb
 import com.Lia.assistant.ui.fx.LiaOrb3D
 import com.Lia.assistant.ui.fx.tiltParallax
+import com.Lia.assistant.ui.screens.settings.orbStyleFromId
 import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaMotion
 import com.Lia.assistant.ui.theme.NovaSpacing
@@ -90,13 +93,14 @@ private fun greetingFor(hour: Int): String = when (hour) {
 
 /**
  * Home as a stage: night sky, a glow field tinted by the live voice state, the 3D orb as the hero,
- * and floating pills under it. [extra] is for temporary cards (the API key) below the stage.
+ * and floating pills under it. [extra] is an optional slot for cards below the stage.
  */
 @Composable
 fun HomeScreen(
     appState: NovaAppState,
     onTalk: () -> Unit,
     onType: () -> Unit,
+    onSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
     extra: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -185,7 +189,26 @@ fun HomeScreen(
                         .border(1.dp, colors.surfaceBorder, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    NovaOrb(state = voiceState, diameter = 28.dp, name = appState.assistantName)
+                    NovaOrb(
+                        state = voiceState,
+                        diameter = 28.dp,
+                        name = appState.assistantName,
+                        style = orbStyleFromId(appState.orbStyle),
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier
+                        .size(48.dp)
+                        .depthSurface(CircleShape, 6.dp)
+                        .clip(CircleShape)
+                        .background(colors.surfaceGlass)
+                        .border(1.dp, colors.surfaceBorder, CircleShape)
+                        .clickable(role = Role.Button, onClickLabel = "Settings", onClick = onSettings)
+                        .semantics { contentDescription = "Settings" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Settings, contentDescription = null, tint = colors.textSecondary)
                 }
             }
 
