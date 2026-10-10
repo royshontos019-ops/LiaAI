@@ -37,6 +37,7 @@ object LiaToolCatalog {
         )
         out.put(functionDecl("go_back", "Press the Back button."))
         out.put(functionDecl("go_home", "Go to the home screen."))
+        AgentTools.declarations().forEach { out.put(it) }
         return out
     }
 

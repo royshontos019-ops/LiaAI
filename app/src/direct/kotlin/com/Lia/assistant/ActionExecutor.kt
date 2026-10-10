@@ -25,6 +25,7 @@ object ActionExecutor {
         "scroll_screen" -> AccessibilityTools.scroll(args.optString("direction", "down"))
         "go_back" -> AccessibilityTools.goBack()
         "go_home" -> AccessibilityTools.goHome()
+        in AgentTools.names -> AgentTools.execute(context, name, args)
         else -> ToolJson.unknownTool(name)
     }
 
