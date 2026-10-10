@@ -16,12 +16,14 @@ class DirectFlavorTest {
     private fun run(name: String, args: JSONObject = JSONObject()): JSONObject =
         runBlocking { ActionExecutor.execute(context, name, args) }
 
-    @Test fun direct_declaresTheNineTools() {
+    @Test fun direct_declaresTheThirteenTools() {
         assertEquals("direct", FlavorRoutes.FLAVOR_NAME)
         assertEquals(
             listOf(
                 "open_app", "call_contact", "message_contact",
                 "read_screen", "tap_text", "type_text", "scroll_screen", "go_back", "go_home",
+                "execute_social_media_task", "social_media_task_control",
+                "execute_whatsapp_task", "whatsapp_task_control",
             ),
             LiaToolCatalog.toolNames(),
         )
