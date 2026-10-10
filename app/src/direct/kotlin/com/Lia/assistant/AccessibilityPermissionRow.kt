@@ -11,12 +11,12 @@ import com.Lia.assistant.ui.screens.permissions.PermissionStatusRow
 @Composable
 fun AccessibilityPermissionRow(refreshKey: Int) {
     val context = LocalContext.current
-    val enabled = remember(refreshKey) { AccessKeyManager.isEnabled(context) }
+    val enabled = remember(refreshKey) { ScreenControlAccess.isEnabled(context) }
     PermissionStatusRow(
         title = "Screen control",
         subtitle = "Lets ${AssistantBrand.NAME} read and tap things on your screen",
         state = if (enabled) PermissionState.GRANTED else PermissionState.ASK,
         actionLabel = if (enabled) null else "Open Settings",
-        onAction = { AccessKeyManager.openSettings(context) },
+        onAction = { ScreenControlAccess.openSettings(context) },
     )
 }

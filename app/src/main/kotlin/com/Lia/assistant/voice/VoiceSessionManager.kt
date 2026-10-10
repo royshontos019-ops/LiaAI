@@ -11,6 +11,7 @@ import com.Lia.assistant.data.NovaDefaults
 import com.Lia.assistant.data.NovaPreferences
 import com.Lia.assistant.data.Personality
 import com.Lia.assistant.data.PersonalityRepository
+import com.Lia.assistant.license.AccessKeyManager
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
@@ -219,6 +220,10 @@ object VoiceSessionManager {
         _currentPersonality.value = personality
         _currentLanguage.value = language
 
+        if (!AccessKeyManager.isActive(ctx)) {
+            fail(AccessKeyManager.inactiveMessage(ctx))
+            return
+        }
         val key = ApiKeyStore.getKey(ctx)
         if (key.isBlank()) {
             fail(ERROR_NO_KEY)

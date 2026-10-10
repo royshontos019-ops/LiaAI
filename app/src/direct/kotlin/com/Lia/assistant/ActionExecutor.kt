@@ -5,6 +5,7 @@ import com.Lia.assistant.action.AccessibilityTools
 import com.Lia.assistant.action.NovaAccessibilityService
 import com.Lia.assistant.action.PhoneActions
 import com.Lia.assistant.action.ToolJson
+import com.Lia.assistant.license.AccessKeyManager
 import kotlinx.coroutines.delay
 import org.json.JSONObject
 
@@ -15,7 +16,12 @@ object ActionExecutor {
 
     val isAvailable: Boolean get() = NovaAccessibilityService.instance != null
 
-    suspend fun execute(context: Context, name: String, args: JSONObject): JSONObject = when (name) {
+    suspend fun execute(context: Context, name: String, args: JSONObject): JSONObject {
+        if (!AccessKeyManager.isActive(context)) return AccessKeyManager.inactiveReply(context)
+        return executeLicensed(context, name, args)
+    }
+
+    private suspend fun executeLicensed(context: Context, name: String, args: JSONObject): JSONObject = when (name) {
         "open_app" -> PhoneActions.openApp(context, args)
         "call_contact" -> PhoneActions.callContact(context, args)
         "message_contact" -> messageContact(context, args)

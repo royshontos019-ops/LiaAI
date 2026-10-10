@@ -10,6 +10,15 @@ val keystoreProps = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
+// Licence backend settings for the direct flavor. app/licensing.json is git-ignored (like
+// google-services.json). Without it the app still builds and reports "licensing not configured".
+val licensingConfig: Map<*, *> = file("licensing.json").takeIf { it.exists() }
+    ?.let { groovy.json.JsonSlurper().parse(it) as? Map<*, *> }
+    ?: emptyMap<String, Any>()
+
+fun licensingField(name: String): String =
+    (licensingConfig[name] as? String).orEmpty().replace("\\", "\\\\").replace("\"", "\\\"")
+
 android {
     namespace = "com.Lia.assistant"
     compileSdk = 36
@@ -24,7 +33,11 @@ android {
 
     flavorDimensions += "distribution"
     productFlavors {
-        create("direct") { dimension = "distribution" }
+        create("direct") {
+            dimension = "distribution"
+            buildConfigField("String", "LICENSE_BASE_URL", "\"${licensingField("baseUrl")}\"")
+            buildConfigField("String", "LICENSE_API_KEY", "\"${licensingField("apiKey")}\"")
+        }
         create("play") { dimension = "distribution" }
     }
 
@@ -53,7 +66,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     testOptions { unitTests.isReturnDefaultValues = true }
 }

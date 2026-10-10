@@ -11,8 +11,8 @@ import com.Lia.assistant.ui.components.NovaButtonStyle
 fun AccessibilitySettingsRows() {
     val ctx = LocalContext.current
     NovaButton(
-        text = if (AccessKeyManager.isEnabled(ctx)) "Screen control: on" else "Enable screen control",
-        onClick = { AccessKeyManager.openSettings(ctx) },
+        text = if (ScreenControlAccess.isEnabled(ctx)) "Screen control: on" else "Enable screen control",
+        onClick = { ScreenControlAccess.openSettings(ctx) },
         modifier = Modifier.fillMaxWidth(),
         style = NovaButtonStyle.SECONDARY,
     )

@@ -50,6 +50,11 @@ import com.Lia.assistant.ui.screens.voice.VoiceScreen
 import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaTheme
 import com.Lia.assistant.voice.VoiceSessionManager
+import com.Lia.assistant.voice.VoiceForegroundService
+import com.Lia.assistant.license.AccessKeyBanner
+import com.Lia.assistant.license.AccessKeyManager
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
@@ -73,6 +78,18 @@ class MainActivity : ComponentActivity() {
                     if (splashVisible) LiaSplash3D(onFinished = { splashVisible = false })
                 }
                 EdgeGlowDialogHost() // above every screen
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-check the access key (at most every 3 hours; being offline never locks anyone out).
+        lifecycleScope.launch {
+            AccessKeyManager.refreshInfo(applicationContext)
+            AccessKeyManager.liveCheck(applicationContext)
+            if (VoiceSessionManager.isActive.value && !AccessKeyManager.isActive(applicationContext)) {
+                VoiceForegroundService.stop(applicationContext)
             }
         }
     }
@@ -124,6 +141,7 @@ private fun LiaRoot(appState: NovaAppState) {
                         onType = { openChat(null) },
                         onProfile = { nav.navigate("profile") { launchSingleTop = true } },
                         onQuickActions = { nav.navigate("quickactions") { launchSingleTop = true } },
+                        extra = { AccessKeyBanner(onOpenProfile = { nav.navigate("profile") { launchSingleTop = true } }) },
                     )
                 }
                 composable("chat") {

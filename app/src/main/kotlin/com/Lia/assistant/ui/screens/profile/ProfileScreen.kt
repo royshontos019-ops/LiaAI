@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.Lia.assistant.data.AssistantBrand
 import com.Lia.assistant.data.NovaAppState
+import com.Lia.assistant.license.AccessKeySection
 import com.Lia.assistant.ui.components.NovaAvatar
 import com.Lia.assistant.ui.components.NovaGlassCard
 import com.Lia.assistant.ui.components.NovaTextField
@@ -87,6 +88,7 @@ fun ProfileScreen(
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     )
                 }
+                AccessKeySection()
                 Spacer(Modifier.height(NovaSpacing.xl))
             }
         }

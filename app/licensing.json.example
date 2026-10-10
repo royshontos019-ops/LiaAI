@@ -1,0 +1,4 @@
+{
+  "baseUrl": "https://YOUR-BACKEND.example/license",
+  "apiKey": "optional-shared-secret-sent-as-X-Api-Key"
+}

@@ -11,3 +11,6 @@
 keystore.properties
 *.jks
 *.keystore
+
+# licence backend settings (never commit)
+app/licensing.json
