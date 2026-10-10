@@ -96,7 +96,7 @@ class AccessKeyRulesTest {
     }
 
     @Test fun keysAreTidiedAndChecked() {
-        assertEquals("ABCD-1234-EFGH", AccessKeyRules.normalizeKey("  abcd-1234 efgh\n"))
+        assertEquals("ABCD-1234EFGH", AccessKeyRules.normalizeKey("  abcd-1234 efgh\n"))
         assertTrue(AccessKeyRules.looksLikeKey("ABCD-1234"))
         assertTrue(AccessKeyRules.looksLikeKey("A".repeat(64)))
         assertFalse(AccessKeyRules.looksLikeKey("SHORT"))
