@@ -296,8 +296,7 @@ object VoiceSessionManager {
             scope.launch {
                 val response: JSONObject = if (name == TOOL_BUILD_WEBSITE) {
                     // Start the Forge (it works in the background) and answer right away.
-                    val started = appContext?.let { Forge.start(it, args) } ?: false
-                    JSONObject().put("result", if (started) "forge_started" else "forge_unavailable")
+                    appContext?.let { Forge.startForTool(it, args) } ?: JSONObject().put("result", "forge_unavailable")
                 } else {
                     val ctx = appContext
                     if (ctx == null) {

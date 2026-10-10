@@ -23,7 +23,7 @@ class DirectFlavorTest {
                 "open_app", "call_contact", "message_contact",
                 "read_screen", "tap_text", "type_text", "scroll_screen", "go_back", "go_home",
                 "execute_social_media_task", "social_media_task_control",
-                "execute_whatsapp_task", "whatsapp_task_control",
+                "execute_whatsapp_task", "whatsapp_task_control", "build_website",
             ),
             LiaToolCatalog.toolNames(),
         )

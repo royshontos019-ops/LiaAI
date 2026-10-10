@@ -16,7 +16,7 @@ class PlayFlavorTest {
 
     @Test fun play_declaresExactlyThreeTools() {
         assertEquals("play", FlavorRoutes.FLAVOR_NAME)
-        assertEquals(listOf("open_app", "call_contact", "message_contact"), LiaToolCatalog.toolNames())
+        assertEquals(listOf("open_app", "call_contact", "message_contact", "build_website"), LiaToolCatalog.toolNames())
         assertFalse(ActionExecutor.isAvailable)
     }
 

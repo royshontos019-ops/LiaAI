@@ -3,6 +3,7 @@ package com.Lia.assistant
 import com.Lia.assistant.action.PhoneToolDeclarations
 import com.Lia.assistant.action.declaredToolNames
 import com.Lia.assistant.action.functionDecl
+import com.Lia.assistant.forge.ForgeTool
 import org.json.JSONArray
 
 /** Direct flavor: phone actions plus screen control. */
@@ -38,6 +39,7 @@ object LiaToolCatalog {
         out.put(functionDecl("go_back", "Press the Back button."))
         out.put(functionDecl("go_home", "Go to the home screen."))
         AgentTools.declarations().forEach { out.put(it) }
+        out.put(ForgeTool.declaration())
         return out
     }
 
