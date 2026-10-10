@@ -17,7 +17,7 @@ sealed interface MediaResolution {
 class MediaResolver(private val source: SharedMediaSource) {
     fun resolve(rawUri: String): MediaResolution {
         val uri = rawUri.trim()
-        if (uri.isEmpty()) return MediaResolution.Rejected("media_required", "No media was given.")
+        if (uri.isEmpty()) return MediaResolution.Rejected("media_required", "No media was given. Ask the user to share the photo or video to Lia first, using the Share menu.")
         if (!uri.startsWith("content://", ignoreCase = true)) {
             return MediaResolution.Rejected(
                 "media_scheme",

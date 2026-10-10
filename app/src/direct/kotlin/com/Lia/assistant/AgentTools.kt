@@ -47,7 +47,7 @@ object AgentTools {
             mapOf(
                 "platform" to "instagram or facebook",
                 "action" to "create_post, create_reel, create_story or text_post",
-                "media_uri" to "content:// address of the media the user shared to Lia (not needed for text_post)",
+                "media_uri" to "The word latest for the photo or video the user most recently shared to Lia (not needed for text_post)",
                 "caption" to "Caption or post text (optional, not used for stories)",
                 "mode" to "publish or draft (default draft)",
                 "target_account" to "Account name to post as (optional; the app's current account is used)",
@@ -110,7 +110,8 @@ object AgentTools {
 
     private fun startSocial(rt: AgentRuntime, args: JSONObject): JSONObject {
         val map = listOf("platform", "action", "media_uri", "caption", "mode", "target_account")
-            .associateWith { args.optString(it) }
+            .associateWith { args.optString(it) } +
+            ("media_uri" to resolveMediaArg(args.optString("media_uri"), args.optString("action")))
         val request: SocialTaskRequest = when (val parsed = SocialTaskRequest.parse(map, MediaResolver(SharedMediaStore))) {
             is ParseResult.Invalid -> return reply("invalid_request").put("code", parsed.code).put("error", parsed.message)
             is ParseResult.Valid -> parsed.request
@@ -161,6 +162,14 @@ object AgentTools {
         val id = args.optString("task_id").ifBlank { rt.whatsapp.active()?.id.orEmpty() }
         if (id.isBlank()) return ToolJson.missing("task_id")
         return rt.whatsapp.control(command, id).toJson()
+    }
+
+    /** "latest" (or nothing, for posts that need media) means the file the user shared to Lia last. */
+    internal fun resolveMediaArg(raw: String, action: String): String {
+        val value = raw.trim()
+        val keyword = value.equals("latest", true) || value.equals("shared", true) || value.equals("last", true)
+        val needsMedia = action.trim().lowercase() != "text_post"
+        return if (keyword || (value.isEmpty() && needsMedia)) SharedMediaStore.latest().orEmpty() else value
     }
 
     // ---- shared --------------------------------------------------------------------------
