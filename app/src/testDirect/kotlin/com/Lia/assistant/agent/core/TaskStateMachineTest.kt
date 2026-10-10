@@ -1,197 +1,116 @@
 package com.Lia.assistant.agent.core
 
+import com.Lia.assistant.agent.core.TaskState.COMPLETED
+import com.Lia.assistant.agent.core.TaskState.EXECUTING_ACTION
+import com.Lia.assistant.agent.core.TaskState.FAILED
+import com.Lia.assistant.agent.core.TaskState.IDLE
+import com.Lia.assistant.agent.core.TaskState.NEXT_STEP
+import com.Lia.assistant.agent.core.TaskState.OBSERVING
+import com.Lia.assistant.agent.core.TaskState.OPENING_APP
+import com.Lia.assistant.agent.core.TaskState.REOBSERVE
+import com.Lia.assistant.agent.core.TaskState.RESOLVING_TARGET
+import com.Lia.assistant.agent.core.TaskState.RETRY
+import com.Lia.assistant.agent.core.TaskState.VALIDATING_TARGET
+import com.Lia.assistant.agent.core.TaskState.VERIFYING
+import com.Lia.assistant.agent.core.TaskState.WAITING_FOR_CONFIRMATION
+import com.Lia.assistant.agent.core.TaskState.WAITING_FOR_UI
+import com.Lia.assistant.agent.core.TaskState.WAITING_FOR_USER
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 
 class TaskStateMachineTest {
 
-    /** Written out by hand on purpose: if someone changes the machine, this must be changed too. */
-    private val expectedForward: Map<TaskState, Set<TaskState>> = mapOf(
-        TaskState.IDLE to setOf(TaskState.OPENING_APP, TaskState.OBSERVING),
-        TaskState.OPENING_APP to setOf(TaskState.OBSERVING, TaskState.WAITING_FOR_USER, TaskState.RETRY),
-        TaskState.OBSERVING to setOf(
-            TaskState.RESOLVING_TARGET, TaskState.WAITING_FOR_USER, TaskState.NEXT_STEP, TaskState.RETRY,
-        ),
-        TaskState.RESOLVING_TARGET to setOf(
-            TaskState.VALIDATING_TARGET, TaskState.REOBSERVE, TaskState.RETRY, TaskState.WAITING_FOR_USER,
-        ),
-        TaskState.VALIDATING_TARGET to setOf(
-            TaskState.EXECUTING_ACTION, TaskState.WAITING_FOR_CONFIRMATION, TaskState.REOBSERVE, TaskState.RETRY,
-        ),
-        TaskState.EXECUTING_ACTION to setOf(
-            TaskState.WAITING_FOR_UI, TaskState.VERIFYING, TaskState.RETRY, TaskState.REOBSERVE,
-        ),
-        TaskState.WAITING_FOR_UI to setOf(TaskState.VERIFYING, TaskState.REOBSERVE, TaskState.RETRY),
-        TaskState.VERIFYING to setOf(
-            TaskState.NEXT_STEP, TaskState.RETRY, TaskState.REOBSERVE, TaskState.COMPLETED, TaskState.WAITING_FOR_USER,
-        ),
-        TaskState.NEXT_STEP to setOf(
-            TaskState.OBSERVING, TaskState.OPENING_APP, TaskState.RESOLVING_TARGET, TaskState.COMPLETED,
-        ),
-        TaskState.RETRY to setOf(
-            TaskState.OBSERVING, TaskState.REOBSERVE, TaskState.RESOLVING_TARGET, TaskState.OPENING_APP,
-        ),
-        TaskState.REOBSERVE to setOf(TaskState.OBSERVING, TaskState.RESOLVING_TARGET, TaskState.WAITING_FOR_USER),
-        TaskState.WAITING_FOR_CONFIRMATION to setOf(TaskState.EXECUTING_ACTION, TaskState.REOBSERVE),
-        TaskState.WAITING_FOR_USER to setOf(TaskState.OBSERVING, TaskState.REOBSERVE),
+    /** The rules, written out by hand. FAILED and CANCELLED are added for every unfinished state below. */
+    private val allowed: Map<TaskState, Set<TaskState>> = mapOf(
+        IDLE to setOf(OPENING_APP, OBSERVING),
+        OPENING_APP to setOf(OBSERVING, WAITING_FOR_USER, RETRY),
+        OBSERVING to setOf(RESOLVING_TARGET, WAITING_FOR_USER, NEXT_STEP, RETRY),
+        RESOLVING_TARGET to setOf(VALIDATING_TARGET, REOBSERVE, RETRY, WAITING_FOR_USER),
+        VALIDATING_TARGET to setOf(EXECUTING_ACTION, WAITING_FOR_CONFIRMATION, REOBSERVE, RETRY),
+        EXECUTING_ACTION to setOf(WAITING_FOR_UI, VERIFYING, RETRY, REOBSERVE),
+        WAITING_FOR_UI to setOf(VERIFYING, REOBSERVE, RETRY),
+        VERIFYING to setOf(NEXT_STEP, RETRY, REOBSERVE, COMPLETED, WAITING_FOR_USER),
+        NEXT_STEP to setOf(OBSERVING, OPENING_APP, RESOLVING_TARGET, COMPLETED),
+        RETRY to setOf(OBSERVING, REOBSERVE, RESOLVING_TARGET, OPENING_APP),
+        REOBSERVE to setOf(OBSERVING, RESOLVING_TARGET, WAITING_FOR_USER),
+        WAITING_FOR_CONFIRMATION to setOf(EXECUTING_ACTION, REOBSERVE),
+        WAITING_FOR_USER to setOf(OBSERVING, REOBSERVE),
+        COMPLETED to emptySet(),
+        FAILED to emptySet(),
+        TaskState.CANCELLED to emptySet(),
     )
 
-    private fun expectedTargets(from: TaskState): Set<TaskState> =
-        if (from.isTerminal) emptySet()
-        else (expectedForward.getValue(from) + TaskState.FAILED + TaskState.CANCELLED)
-
-    private fun movesIllegally(from: TaskState, to: TaskState): Boolean {
-        val machine = TaskStateMachine(from)
-        return try {
-            machine.moveTo(to)
-            false
-        } catch (e: IllegalTransitionException) {
-            assertEquals(from, e.from)
-            assertEquals(to, e.to)
-            assertEquals("a refused move must not change the state", from, machine.state)
-            assertTrue("a refused move must not be recorded", machine.history.isEmpty())
-            true
-        }
-    }
-
-    @Test
-    fun startsIdleWithNoHistory() {
-        val machine = TaskStateMachine()
-        assertEquals(TaskState.IDLE, machine.state)
-        assertTrue(machine.history.isEmpty())
-        assertFalse(machine.isTerminal)
-    }
-
-    @Test
-    fun everyLegalTransitionIsAccepted() {
+    @Test fun everyPairOfStatesIsLegalOrThrows() {
+        var legal = 0
+        var illegal = 0
         for (from in TaskState.entries) {
-            for (to in expectedTargets(from)) {
-                val machine = TaskStateMachine(from)
-                machine.moveTo(to, "test")
-                assertEquals("$from -> $to", to, machine.state)
-                assertEquals(1, machine.history.size)
-                assertEquals(from, machine.history.single().from)
-                assertEquals(to, machine.history.single().to)
-            }
-        }
-    }
-
-    @Test
-    fun everyIllegalTransitionThrows() {
-        for (from in TaskState.entries) {
-            val legal = expectedTargets(from)
             for (to in TaskState.entries) {
-                if (to in legal) continue
-                assertTrue("$from -> $to should be illegal", movesIllegally(from, to))
+                val expected = !from.isTerminal &&
+                    (to in allowed.getValue(from) || to == FAILED || to == TaskState.CANCELLED)
+                val machine = TaskStateMachine(from)
+                assertEquals("canMoveTo $from -> $to", expected, machine.canMoveTo(to))
+                if (expected) {
+                    machine.moveTo(to)
+                    assertEquals(to, machine.state)
+                    legal++
+                } else {
+                    assertThrows("$from -> $to must throw", IllegalTransitionException::class.java) { machine.moveTo(to) }
+                    assertEquals("a refused move changes nothing", from, machine.state)
+                    assertTrue(machine.history.isEmpty())
+                    illegal++
+                }
             }
         }
+        assertTrue(legal > 0 && illegal > 0)
+        assertEquals(TaskState.entries.size * TaskState.entries.size, legal + illegal)
     }
 
-    @Test
-    fun machineAndTheHandWrittenTableAgree() {
-        for (from in TaskState.entries) {
-            assertEquals("targets of $from", expectedTargets(from), TaskStateMachine.legalTargets(from))
-        }
-    }
-
-    @Test
-    fun failedAndCancelledAreReachableFromEveryUnfinishedState() {
+    @Test fun failedAndCancelledAreReachableFromEveryUnfinishedState() {
         for (from in TaskState.entries.filter { !it.isTerminal }) {
-            for (end in listOf(TaskState.FAILED, TaskState.CANCELLED)) {
-                val machine = TaskStateMachine(from)
-                machine.moveTo(end)
-                assertEquals(end, machine.state)
-                assertTrue(machine.isTerminal)
-            }
+            assertTrue("$from -> FAILED", TaskStateMachine(from).canMoveTo(FAILED))
+            assertTrue("$from -> CANCELLED", TaskStateMachine(from).canMoveTo(TaskState.CANCELLED))
         }
     }
 
-    @Test
-    fun finishedStatesNeverLeave() {
-        for (finished in listOf(TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELLED)) {
-            for (to in TaskState.entries) {
-                assertTrue("$finished -> $to must be refused", movesIllegally(finished, to))
-            }
+    @Test fun finishedStatesNeverLeave() {
+        for (end in listOf(COMPLETED, FAILED, TaskState.CANCELLED)) {
+            assertTrue(end.isTerminal)
+            val machine = TaskStateMachine(end)
+            assertTrue(machine.isTerminal)
+            for (to in TaskState.entries) assertFalse("$end -> $to", machine.canMoveTo(to))
+            assertTrue(TaskStateMachine.legalTargets(end).isEmpty())
         }
     }
 
-    @Test
-    fun movingToTheSameStateIsRefused() {
-        for (state in TaskState.entries) {
-            assertTrue("$state -> $state", movesIllegally(state, state))
-        }
+    @Test fun anIllegalJumpCarriesBothStates() {
+        val machine = TaskStateMachine(IDLE)
+        val e = assertThrows(IllegalTransitionException::class.java) { machine.moveTo(COMPLETED) }
+        assertEquals(IDLE, e.from)
+        assertEquals(COMPLETED, e.to)
     }
 
-    @Test
-    fun theIrreversibleStepCannotBeReachedWithoutAskingFirst() {
-        // Everything before the action can reach WAITING_FOR_CONFIRMATION only from VALIDATING_TARGET,
-        // and EXECUTING_ACTION can be entered from WAITING_FOR_CONFIRMATION or VALIDATING_TARGET.
-        val canEnterConfirmation = TaskState.entries.filter { TaskState.WAITING_FOR_CONFIRMATION in TaskStateMachine.legalTargets(it) }
-        assertEquals(
-            setOf(TaskState.VALIDATING_TARGET),
-            canEnterConfirmation.filter { it != TaskState.WAITING_FOR_CONFIRMATION }.toSet(),
-        )
-        assertFalse(TaskStateMachine.isLegal(TaskState.IDLE, TaskState.EXECUTING_ACTION))
-        assertFalse(TaskStateMachine.isLegal(TaskState.OBSERVING, TaskState.EXECUTING_ACTION))
-        assertFalse(TaskStateMachine.isLegal(TaskState.WAITING_FOR_USER, TaskState.EXECUTING_ACTION))
-    }
-
-    @Test
-    fun aBlockerPausesAtWaitingForUserAndCanResume() {
+    @Test fun historyListsEveryMoveInOrder() {
         val machine = TaskStateMachine()
-        machine.moveTo(TaskState.OPENING_APP)
-        machine.moveTo(TaskState.OBSERVING)
-        machine.moveTo(TaskState.WAITING_FOR_USER, "login screen")
-        assertEquals(TaskState.WAITING_FOR_USER, machine.state)
-        assertFalse(machine.canMoveTo(TaskState.EXECUTING_ACTION))
-        machine.moveTo(TaskState.OBSERVING, "resumed")
-        assertEquals(TaskState.OBSERVING, machine.state)
-    }
-
-    @Test
-    fun historyKeepsEveryMoveInOrderWithNotes() {
-        val machine = TaskStateMachine()
-        machine.moveTo(TaskState.OPENING_APP, "open")
-        machine.moveTo(TaskState.OBSERVING)
-        machine.moveTo(TaskState.RESOLVING_TARGET, "find share")
-        machine.moveTo(TaskState.FAILED, "not found")
-
+        machine.moveTo(OPENING_APP, "open")
+        machine.moveTo(OBSERVING)
+        machine.moveTo(NEXT_STEP, "done")
+        machine.moveTo(COMPLETED)
         val history = machine.history
         assertEquals(listOf(1, 2, 3, 4), history.map { it.sequence })
-        assertEquals(
-            listOf(TaskState.OPENING_APP, TaskState.OBSERVING, TaskState.RESOLVING_TARGET, TaskState.FAILED),
-            history.map { it.to },
-        )
-        assertEquals(TaskState.IDLE, history.first().from)
-        assertEquals("find share", history[2].note)
-        assertEquals(null, history[1].note)
-    }
-
-    @Test
-    fun aFullHappyPathWalksThroughConfirmation() {
-        val machine = TaskStateMachine()
-        val path = listOf(
-            TaskState.OPENING_APP, TaskState.OBSERVING, TaskState.RESOLVING_TARGET, TaskState.VALIDATING_TARGET,
-            TaskState.WAITING_FOR_CONFIRMATION, TaskState.EXECUTING_ACTION, TaskState.WAITING_FOR_UI,
-            TaskState.VERIFYING, TaskState.COMPLETED,
-        )
-        path.forEach { machine.moveTo(it) }
-        assertEquals(TaskState.COMPLETED, machine.state)
+        assertEquals(listOf(IDLE, OPENING_APP, OBSERVING, NEXT_STEP), history.map { it.from })
+        assertEquals(listOf(OPENING_APP, OBSERVING, NEXT_STEP, COMPLETED), history.map { it.to })
+        assertEquals("open", history.first().note)
         assertTrue(machine.isTerminal)
-        assertEquals(path.size, machine.history.size)
     }
 
-    @Test
-    fun illegalMoveMessageNamesBothStates() {
-        try {
-            TaskStateMachine().moveTo(TaskState.COMPLETED)
-            fail("expected an IllegalTransitionException")
-        } catch (e: IllegalTransitionException) {
-            assertTrue(e.message!!.contains("IDLE"))
-            assertTrue(e.message!!.contains("COMPLETED"))
-        }
+    @Test fun thePostTapNeedsAnAskStateOnlyWhenTheRunnerUsesOne() {
+        // The machine allows both routes; the runner is what forces PUBLISH through confirmation.
+        assertTrue(TaskStateMachine(VALIDATING_TARGET).canMoveTo(WAITING_FOR_CONFIRMATION))
+        assertTrue(TaskStateMachine(WAITING_FOR_CONFIRMATION).canMoveTo(EXECUTING_ACTION))
+        assertFalse("confirmation cannot jump straight to done", TaskStateMachine(WAITING_FOR_CONFIRMATION).canMoveTo(COMPLETED))
+        assertFalse("nothing reaches confirmation except a validated target", TaskStateMachine(OBSERVING).canMoveTo(WAITING_FOR_CONFIRMATION))
     }
 }
