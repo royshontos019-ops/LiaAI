@@ -50,6 +50,9 @@ import com.Lia.assistant.ui.screens.voice.VoiceScreen
 import com.Lia.assistant.ui.theme.LocalBottomBarInset
 import com.Lia.assistant.ui.theme.NovaTheme
 import com.Lia.assistant.voice.VoiceSessionManager
+import com.Lia.assistant.forge.ForgeController
+import com.Lia.assistant.forge.ForgeNotifier
+import com.Lia.assistant.ui.screens.forge.ForgeScreen
 import com.Lia.assistant.voice.VoiceForegroundService
 import com.Lia.assistant.license.AccessKeyBanner
 import com.Lia.assistant.license.AccessKeyManager
@@ -82,8 +85,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
+        // A tap on the "Your website is ready" notification asks for the Forge screen.
+        if (intent?.getBooleanExtra(ForgeNotifier.EXTRA_OPEN_FORGE, false) == true) {
+            intent.removeExtra(ForgeNotifier.EXTRA_OPEN_FORGE)
+            ForgeController.requestOpen()
+        }
         // Re-check the access key (at most every 3 hours; being offline never locks anyone out).
         lifecycleScope.launch {
             AccessKeyManager.refreshInfo(applicationContext)
@@ -128,6 +141,15 @@ private fun LiaRoot(appState: NovaAppState) {
     val voiceState by VoiceSessionManager.state.collectAsStateWithLifecycle()
     val amplitude by VoiceSessionManager.amplitude.collectAsStateWithLifecycle()
 
+    // A website build started (by voice, by typing or from Quick actions): show the Forge.
+    val forgeOpen by ForgeController.pendingOpen.collectAsStateWithLifecycle()
+    LaunchedEffect(forgeOpen) {
+        if (forgeOpen) {
+            nav.navigate("forge") { launchSingleTop = true }
+            ForgeController.consumeOpen()
+        }
+    }
+
     CompositionLocalProvider(
         LocalTilt provides tilt,
         LocalBottomBarInset provides (if (barVisible) NovaFloatingBarInset else 0.dp),
@@ -143,6 +165,9 @@ private fun LiaRoot(appState: NovaAppState) {
                         onQuickActions = { nav.navigate("quickactions") { launchSingleTop = true } },
                         extra = { AccessKeyBanner(onOpenProfile = { nav.navigate("profile") { launchSingleTop = true } }) },
                     )
+                }
+                composable("forge") {
+                    ForgeScreen(onClose = { nav.popBackStack() })
                 }
                 composable("chat") {
                     ChatScreen(

@@ -50,5 +50,14 @@
             android:name=".voice.VoiceForegroundService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+        <provider
+            android:name=".forge.ForgeFileProvider"
+            android:authorities="${applicationId}.forge.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/forge_paths" />
+        </provider>
     </application>
 </manifest>

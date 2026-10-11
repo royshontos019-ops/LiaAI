@@ -77,6 +77,11 @@ class ForgeSession(
         _pendingOpen.value = false
     }
 
+    /** Asks the app to open the Forge screen (a tap on the "website ready" notification). */
+    fun requestOpen() {
+        _pendingOpen.value = true
+    }
+
     /** The page as far as it has got (the finished page once done). */
     fun partialHtml(): String = partial
 

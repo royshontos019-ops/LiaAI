@@ -147,6 +147,8 @@ object ForgeController {
 
     fun consumeOpen() = session.consumeOpen()
 
+    fun requestOpen() = session.requestOpen()
+
     fun openSaved(file: File) = session.openSaved(file)
 
     fun partialHtml(): String = session.partialHtml()
